@@ -1,6 +1,6 @@
 import React from 'react';
 import { Gift } from '../types';
-import { IconUser, IconSparkles, IconCheck, IconHeart } from './Icons';
+import { IconUser, IconSparkles, IconHeart } from './Icons';
 
 interface PresenceListProps {
   gifts: Gift[];

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Gift } from './types';
-import { ADMIN_NAME, EVENT_DATE, SHEET_SCRIPT_URL } from './constants';
+import { ADMIN_NAME, EVENT_DATE, SHEET_SCRIPT_URL, INITIAL_GIFTS } from './constants';
 import Onboarding from './components/Onboarding';
 import Header from './components/Header';
 import Countdown from './components/Countdown';
@@ -14,7 +14,7 @@ import { IconArrowUp } from './components/Icons';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [gifts, setGifts] = useState<Gift[]>([]);
+  const [gifts, setGifts] = useState<Gift[]>(INITIAL_GIFTS);
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [showAdmin, setShowAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,8 +60,10 @@ const App: React.FC = () => {
     try {
       const response = await fetch(SHEET_SCRIPT_URL);
       const data = await response.json();
-      setGifts(data);
-      localStorage.setItem('housewarming_gifts', JSON.stringify(data));
+      if (Array.isArray(data) && data.length > 0) {
+        setGifts(data);
+        localStorage.setItem('housewarming_gifts', JSON.stringify(data));
+      }
     } catch (error) {
       console.error("Erro ao sincronizar:", error);
     }
@@ -69,7 +71,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const savedGifts = localStorage.getItem('housewarming_gifts');
-    if (savedGifts) setGifts(JSON.parse(savedGifts));
+    if (savedGifts) {
+      setGifts(JSON.parse(savedGifts));
+    }
     refreshGifts();
     const interval = setInterval(refreshGifts, 30000); 
 
@@ -141,7 +145,7 @@ const App: React.FC = () => {
           category: finalGift.category,
           imageUrl: finalGift.imageUrl,
           priceEstimate: finalGift.priceEstimate,
-          urls: finalGift.shopeeUrl // Mapeando para o parametro esperado pelo backend
+          urls: finalGift.shopeeUrl
         })
       });
       setTimeout(refreshGifts, 1500);
@@ -161,8 +165,7 @@ const App: React.FC = () => {
   const userReservedGifts = gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
 
   return (
-    // pb-32 garante espaço para o carrinho flutuante
-    <div className={`min-h-screen text-[#354F52] pb-32 relative selection:bg-[#B07D62]/30`}>
+    <div className={`min-h-screen bg-[#F8F7F2] text-[#354F52] pb-32 relative selection:bg-[#B07D62]/30`}>
       <CustomAlert {...alertConfig} />
       
       {/* Confetti Container */}
@@ -188,7 +191,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Cart - Always rendered but handles its own visibility */}
+      {/* Floating Cart */}
       {!showAdmin && (
         <Cart 
           user={user} 
@@ -244,7 +247,6 @@ const App: React.FC = () => {
             <GiftList 
               gifts={gifts} 
               onCategoryChange={setActiveCategory}
-              // Ação direta do botão "Quero Presentear"
               onReserve={(gift) => {
                  showAlert(
                     'confirm',
@@ -254,14 +256,13 @@ const App: React.FC = () => {
                     () => {}
                  );
               }}
-              // Ação quando o usuário volta de uma "espiadinha"
               onLinkReturn={(gift) => {
                  showAlert(
                     'confirm',
                     'E aí, gostou do que viu?',
                     `Percebemos que você foi dar uma olhadinha em "${gift.name}".\n\nSe você decidiu comprar por lá (ou em qualquer outro lugar), quer marcar este item como JÁ COMPRADO aqui na lista para não ganharmos repetido?`,
                     () => updateGiftStatus(gift.id, 'reserved', user.name),
-                    () => {} // Se cancelar, apenas fecha o alerta e nada acontece (apenas olhou)
+                    () => {} 
                  );
               }}
             />

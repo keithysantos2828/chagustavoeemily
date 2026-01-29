@@ -27,13 +27,14 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 ### ✨ Fase 2: Encantamento & Facilidade (ATUAL)
 *Agora vamos decorar, colocar flores nos vasos e facilitar a vida das visitas.*
 
-- [x] **Facilitador de Encontros (Busca):** (FEITO AGORA)
-    *   Implementar barra de busca para filtrar presentes por nome.
-    *   Deve ser instantânea e limpar filtros conflitantes suavemente.
+- [x] **Facilitador de Encontros (Busca):**
+    *   Barra de busca instantânea humanizada.
+- [x] **Clareza na Ação de Presentear:**
+    *   Implementação de 3 fluxos distintos no card do presente: "Comprar na Shopee", "Presentear por Fora" e "Apenas ver".
+- [x] **Limpeza do Backend:** (CORRIGIDO)
+    *   Script `GOOGLE_SCRIPT_CODE.js` atualizado com a **lista REAL de presentes** (Cozinha, Quarto, Banheiro, etc) e a foto correta do Jogo de Panelas.
 - [ ] **Cartão de Visita Digital (SEO & Open Graph):**
-    *   Configurar meta tags para que, ao compartilhar o link no WhatsApp, apareça uma foto linda do casal e um título convidativo.
-- [ ] **Mural de Recados (Opcional/Futuro):**
-    *   Uma área simples onde, ao confirmar o presente, o convidado pode deixar uma mensagem curta de carinho que será salva na planilha.
+    *   Configurar meta tags para compartilhamento bonito no WhatsApp.
 
 ---
 
@@ -52,4 +53,4 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 *   **Fundo:** `#F8F7F2` (Sand)
 
 ---
-**Status Atual:** Iniciando Fase 2 - Implementação da Busca Inteligente.
+**Status Atual:** Backend atualizado com a lista oficial de presentes.

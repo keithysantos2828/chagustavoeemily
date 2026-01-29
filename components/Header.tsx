@@ -6,7 +6,6 @@ interface HeaderProps {
   user: User;
 }
 
-// Fixed: Added HeaderProps generic to React.FC so it accepts 'user' prop
 const Header: React.FC<HeaderProps> = ({ user }) => {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();

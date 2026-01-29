@@ -11,32 +11,22 @@ interface CartProps {
 const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Se não tem presentes, não mostra nada
   if (reservedGifts.length === 0) return null;
 
   return (
     <>
-      {/* 
-         MOBILE: Fixed Bottom Sheet (inset-x-0, bottom-0, rounded-t-xl)
-         DESKTOP: Floating Widget (md:bottom-6, md:right-6, md:w-96, rounded-2xl)
-      */}
       <div className="fixed z-[100] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
-        /* Mobile Styles */
         bottom-0 inset-x-0 w-full
-        /* Desktop Styles */
         md:bottom-6 md:inset-x-auto md:right-6 md:w-[400px] pointer-events-none flex flex-col items-end
       ">
         <div className={`
           pointer-events-auto bg-[#354F52] text-white shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.2)] border-t border-white/10 overflow-hidden backdrop-blur-xl relative
-          /* Mobile Specifics: Full width, rounded top only */
           w-full rounded-t-[2rem] md:rounded-[2rem] md:border md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
           transition-all duration-500
         `}>
           
-          {/* Mobile Drag Handle Visual - Só aparece no mobile */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-white/20 rounded-full md:hidden" />
 
-          {/* Header do Carrinho (Sempre visível) */}
           <div 
             onClick={() => setIsOpen(!isOpen)}
             className="p-5 md:p-4 flex items-center justify-between cursor-pointer group active:bg-white/5 transition-colors pt-6 md:pt-4"
@@ -63,7 +53,6 @@ const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
             </div>
           </div>
 
-          {/* Lista de Itens (Expandível) */}
           <div className={`
             transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
             ${isOpen ? 'max-h-[60vh] opacity-100' : 'max-h-0 opacity-0'}
