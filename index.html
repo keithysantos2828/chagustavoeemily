@@ -5,13 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#F8F7F2" />
     
-    <!-- Correção Vercel: Meta tag atualizada e Favicon -->
+    <!-- Correção: Meta tag mobile atualizada -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Casa Nova">
+    
+    <!-- Favicon direto no código para evitar erro 404 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
     
     <title>Chá de Casa Nova | Emily & Gustavo</title>
+    
+    <!-- Tailwind via CDN (Gera aviso no console, mas funciona para este propósito) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400;1,600&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
     <style>
       :root {
@@ -32,7 +38,6 @@
         -webkit-tap-highlight-color: transparent;
       }
 
-      /* Acessibilidade: Focus Ring Personalizado */
       :focus-visible {
         outline: 2px solid var(--terracotta);
         outline-offset: 2px;
@@ -55,7 +60,6 @@
       .font-cursive { font-family: 'Dancing Script', cursive; }
       .font-serif { font-family: 'Cormorant Garamond', serif; }
       
-      /* Scrollbar refinado */
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgba(82, 121, 111, 0.2); border-radius: 10px; }
@@ -66,7 +70,6 @@
       .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
       .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
-      /* Animações Orgânicas */
       @keyframes float {
         0%, 100% { transform: translate(0, 0) rotate(0deg); }
         25% { transform: translate(10px, 10px) rotate(5deg); }
@@ -86,20 +89,25 @@
   <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    
     <!-- Elementos de Fundo Orgânico -->
     <div class="leaf-float text-[#52796F]" style="top: -5%; left: -5%; font-size: 12rem; animation-delay: 0s;">🌿</div>
     <div class="leaf-float text-[#84A98C]" style="top: 20%; right: -5%; font-size: 8rem; animation-delay: -5s;">🍃</div>
     <div class="leaf-float text-[#B07D62]" style="bottom: 10%; left: 5%; font-size: 6rem; animation-delay: -8s; opacity: 0.05;">🌱</div>
     <div class="leaf-float text-[#52796F]" style="bottom: -5%; right: 10%; font-size: 10rem; animation-delay: -12s;">🌿</div>
+
+    <!-- O "Elo Perdido": Este script conecta o HTML ao seu código React -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
