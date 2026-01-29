@@ -1,6 +1,6 @@
 import { Gift } from './types';
 
-export const EVENT_DATE = new Date('2026-02-15T13:00:00');
+export const EVENT_DATE = new Date('2026-02-15T15:00:00');
 export const ADMIN_NAME = 'Emily Thalia';
 
 // URL do Google Apps Script (Backend via Planilha)

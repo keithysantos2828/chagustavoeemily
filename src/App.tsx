@@ -120,7 +120,6 @@ const App: React.FC = () => {
           category: finalGift.category,
           imageUrl: finalGift.imageUrl,
           priceEstimate: finalGift.priceEstimate,
-          // Corrected property name from shopeeUrls to shopeeUrl
           urls: finalGift.shopeeUrl
         })
       });
@@ -130,6 +129,17 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLinkReturn = (gift: Gift) => {
+    if (!user) return;
+    showAlert(
+      'confirm',
+      'Você comprou este presente?',
+      `Se você finalizou a compra de "${gift.name}" na Shopee, confirme abaixo para reservarmos em seu nome.`,
+      () => updateGiftStatus(gift.id, 'reserved', user.name),
+      () => {}
+    );
   };
 
   if (!user) return <Onboarding onSubmit={handleOnboarding} />;
@@ -199,12 +209,13 @@ const App: React.FC = () => {
           ) : (
             <GiftList 
               gifts={gifts} 
-              onReserve={(id) => updateGiftStatus(id, 'reserved', user.name)} 
+              onReserve={(gift) => updateGiftStatus(gift.id, 'reserved', user.name)} 
+              onLinkReturn={handleLinkReturn}
             />
           )}
         </main>
 
-        <Footer />
+        <Footer onShowAlert={showAlert} />
       </div>
       <style>{`
         @keyframes loading {
