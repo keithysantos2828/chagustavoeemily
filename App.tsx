@@ -173,9 +173,12 @@ const App: React.FC = () => {
   if (!user) return <Onboarding onSubmit={handleOnboarding} />;
 
   const userReservedGifts = gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
+  const hasItemsInCart = userReservedGifts.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] overflow-x-hidden pb-24 md:pb-10">
+    // Removido overflow-x-hidden daqui para corrigir o position: sticky dos filtros
+    // O controle de overflow horizontal agora fica por conta do body no CSS global
+    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] pb-24 md:pb-10">
       <CustomAlert {...alertConfig} />
       
       {loading && (
@@ -184,7 +187,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Botão Voltar ao Topo */}
+      {/* Botão Voltar ao Topo - Posição dinâmica baseada no carrinho */}
       <button
         onClick={scrollToTop}
         className={`
@@ -192,8 +195,8 @@ const App: React.FC = () => {
           transition-all duration-500 hover:bg-[#2A3F41] active:scale-95 border border-white/10
           flex items-center justify-center
           ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
-          /* Posicionamento Mobile vs Desktop */
-          bottom-20 md:bottom-8
+          /* Se tiver itens no carrinho, sobe o botão (bottom-24), senão fica normal (bottom-6) */
+          ${hasItemsInCart ? 'bottom-24 md:bottom-32' : 'bottom-6 md:bottom-8'}
         `}
         aria-label="Voltar ao topo"
       >
@@ -223,7 +226,7 @@ const App: React.FC = () => {
 
         <PresenceList gifts={gifts} />
 
-        <main className="mt-12 md:mt-24">
+        <main className="mt-12 md:mt-24 relative">
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
             <div className="text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>

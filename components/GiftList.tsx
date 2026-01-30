@@ -120,12 +120,12 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
 
   return (
     <div className="space-y-6 md:space-y-10">
-      {/* Sticky Filters Area - Mobile Optimized (Horizontal Scroll) vs Desktop (Clean Bar) */}
-      <div className="sticky top-0 z-40 py-2 md:py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
+      {/* Sticky Filters Area - High Z-Index to stay above cards */}
+      <div className="sticky top-0 z-50 py-2 md:py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
         <div className="flex flex-col gap-3 md:gap-4 max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             
-            {/* Search Bar - Full width on mobile, Auto on desktop */}
+            {/* Search Bar */}
             <div className="relative w-full md:w-80 group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
@@ -139,7 +139,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
               />
             </div>
 
-            {/* Categories - Snap Scroll on Mobile, Flex Wrap on Desktop */}
+            {/* Categories */}
             <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
               <div className="flex md:flex-wrap gap-2 md:gap-2 min-w-max">
                 {categories.map(cat => (
