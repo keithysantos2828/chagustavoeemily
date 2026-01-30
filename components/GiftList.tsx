@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Gift } from '../types';
+import { Gift, User } from '../types';
 import { IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSparkles } from './Icons';
 
 interface GiftListProps {
   gifts: Gift[];
+  currentUser?: User; // Novo prop para saber quem sou eu
   onReserve: (gift: Gift) => void;
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
 }
 
 // Componente interno para gerenciar o carregamento individual de cada imagem
-const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = ({ src, alt, isReserved }) => {
+const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMine: boolean }> = ({ src, alt, isReserved, isMine }) => {
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   useEffect(() => {
@@ -48,16 +49,28 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
           onError={() => setImageStatus('error')}
           className={`w-full h-full object-cover transition-all duration-700 ease-out 
             ${imageStatus === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'} 
-            ${isReserved ? 'grayscale opacity-60' : 'md:group-hover:scale-110'} 
+            ${isReserved ? 'grayscale opacity-50' : ''} 
+            ${!isReserved ? 'md:group-hover:scale-110' : ''}
           `} 
         />
       )}
       
-      {isReserved && (
-        <div className="absolute inset-0 bg-[#354F52]/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-500 z-20">
-          <div className="bg-white text-[#354F52] px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl flex items-center gap-2">
-            <IconCheck className="w-4 h-4" />
-            Já Ganharam!
+      {/* Badge para Outros */}
+      {isReserved && !isMine && (
+        <div className="absolute inset-0 bg-[#354F52]/10 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-500 z-20">
+          <div className="bg-stone-100/90 text-stone-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 border border-stone-200">
+            <IconCheck className="w-3 h-3" />
+            Já Ganharam
+          </div>
+        </div>
+      )}
+
+      {/* Badge para Mim (Destaque) */}
+      {isReserved && isMine && (
+        <div className="absolute inset-0 bg-[#52796F]/10 flex items-center justify-center animate-in fade-in duration-500 z-20">
+          <div className="bg-[#FDFCF8] text-[#52796F] px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 border border-[#52796F]/20 transform scale-110">
+            <IconGift className="w-4 h-4 text-[#B07D62]" />
+            Você escolheu este! ❤️
           </div>
         </div>
       )}
@@ -71,12 +84,11 @@ const IconSearch = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, onCategoryChange }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
-  // Filtros Persistentes: Lê a URL ao carregar
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const categoryParam = params.get('category');
@@ -85,7 +97,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
     }
   }, []);
 
-  // Filtros Persistentes: Atualiza a URL ao mudar
   const handleTabChange = (category: string) => {
     setActiveTab(category);
     setSearchTerm('');
@@ -132,7 +143,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
   useEffect(() => {
     if (searchTerm.trim() && activeTab !== 'Todos') {
       setActiveTab('Todos');
-      // Limpa filtro de categoria da URL se buscar
       const url = new URL(window.location.href);
       url.searchParams.delete('category');
       window.history.pushState({}, '', url);
@@ -205,20 +215,31 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-2 md:px-0">
         {filteredGifts.map((gift) => {
           const isReserved = gift.status === 'reserved';
+          const isMine = !!currentUser && gift.reservedBy === currentUser.name;
           const hasLink = !!gift.shopeeUrl;
           
           return (
             <div 
               key={gift.id}
               className={`
-                group bg-white rounded-3xl overflow-hidden shadow-sm border border-[#52796F]/5 
+                group bg-white rounded-3xl overflow-hidden shadow-sm border 
                 relative flex flex-col
                 active:scale-[0.98] transition-transform duration-100 md:active:scale-100
                 md:hover:shadow-2xl md:hover:-translate-y-2 md:transition-all md:duration-500
-                ${isReserved ? 'opacity-70 grayscale-[0.3]' : ''}
+                ${isMine 
+                   ? 'border-[#52796F] ring-1 ring-[#52796F]/20' // Destaque se for meu
+                   : isReserved 
+                     ? 'border-transparent opacity-80' // Mais apagado se for de outro
+                     : 'border-[#52796F]/5'
+                }
               `}
             >
-              <GiftImage src={gift.imageUrl} alt={gift.name} isReserved={isReserved} />
+              <GiftImage 
+                 src={gift.imageUrl} 
+                 alt={gift.name} 
+                 isReserved={isReserved} 
+                 isMine={isMine} 
+              />
               
               <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-[#354F52] shadow-sm border border-white/50 z-10">
                 R$ {gift.priceEstimate?.toFixed(2)}
@@ -272,10 +293,19 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
                     </div>
                   </div>
                 ) : (
-                   <div className="mt-4 pt-4 border-t border-dashed border-stone-200 text-center">
-                     <p className="text-[11px] text-stone-400 font-medium italic flex items-center justify-center gap-2">
-                       <IconCheck className="w-3 h-3" />
-                       Já Presenteado
+                   <div className={`mt-4 pt-4 border-t border-dashed text-center ${isMine ? 'border-[#52796F]/30' : 'border-stone-200'}`}>
+                     <p className={`text-[11px] font-medium italic flex items-center justify-center gap-2 ${isMine ? 'text-[#52796F]' : 'text-stone-400'}`}>
+                       {isMine ? (
+                         <>
+                           <IconCheck className="w-3 h-3" />
+                           Item reservado para você
+                         </>
+                       ) : (
+                         <>
+                           <IconCheck className="w-3 h-3" />
+                           Já Presenteado
+                         </>
+                       )}
                      </p>
                    </div>
                 )}
@@ -285,7 +315,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
         })}
       </div>
       
-      {/* Empty State Humanizado */}
+      {/* Empty State */}
       {filteredGifts.length === 0 && (
         <div className="text-center py-24 flex flex-col items-center animate-in zoom-in-95">
           <div className="relative mb-6">

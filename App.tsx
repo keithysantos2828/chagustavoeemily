@@ -11,7 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
-import ProcessingModal from './components/ProcessingModal'; // Importando o novo modal
+import ProcessingModal from './components/ProcessingModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { IconArrowUp, IconCrown } from './components/Icons';
 
@@ -26,21 +26,31 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // Novo estado para o modal bloqueante
+  const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [isPageVisible, setIsPageVisible] = useState(true);
   
-  // Referência para guardar o estado anterior e comparar mudanças (Real-time notifications)
   const prevGiftsRef = useRef<Gift[]>([]);
 
-  // SWR: Polling de 5 segundos para garantir sensação de tempo real
+  // 1. POLLING ADAPTATIVO
+  // Detecta se a aba está visível ou não para economizar recursos
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   const { data: gifts = [], error, mutate: mutateGifts } = useSWR<Gift[]>(
     SHEET_SCRIPT_URL, 
     fetcher, 
     { 
       fallbackData: [],
-      refreshInterval: 5000, 
+      // Se visível: 10s (Seguro para Google Script). Se oculto: 60s (Economia).
+      refreshInterval: isPageVisible ? 10000 : 60000, 
       revalidateOnFocus: true,
       dedupingInterval: 2000
     }
@@ -77,8 +87,8 @@ const App: React.FC = () => {
       title,
       message,
       onConfirm: () => {
-        onConfirm(); // Executa a ação
-        closeAlert(); // Fecha o modal
+        onConfirm(); 
+        closeAlert(); 
       },
       onCancel: onCancel ? () => {
         onCancel();
@@ -89,7 +99,6 @@ const App: React.FC = () => {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
-  // Scroll to top logic
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
@@ -98,7 +107,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lógica de Notificações em Tempo Real (Humanizada)
   useEffect(() => {
     if (gifts.length === 0 || !user) return;
 
@@ -147,9 +155,8 @@ const App: React.FC = () => {
     }
   };
 
-  // Atualização Robusta com Modal Bloqueante
+  // 2. TRATAMENTO DE CONCORRÊNCIA (RACE CONDITION)
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    // 1. Abre o modal de processamento imediatamente
     setProcessingMessage(status === 'reserved' 
       ? "Estamos embrulhando seu pedido e anotando seu nome..." 
       : "Estamos devolvendo o item para a prateleira..."
@@ -159,37 +166,58 @@ const App: React.FC = () => {
     const action = status === 'reserved' ? 'claim' : 'unclaim';
     const originalGifts = [...gifts];
     
-    // UI Otimista LOCAL (para o estado ficar consistente visualmente por baixo do modal)
+    // UI Otimista
     const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
     mutateGifts(optimisticGifts, false); 
 
     try {
-      // 2. Envia para o servidor
+      // Envia para o servidor
       await fetch(SHEET_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
 
-      // 3. Força uma revalidação real e aguarda ela terminar
-      await mutateGifts();
+      // Aguarda a confirmação REAL do servidor
+      // Isso pega o estado mais atual da planilha
+      const updatedData = await mutateGifts();
       
-      // Pequeno delay artificial para garantir que o usuário leia a mensagem (opcional, mas bom para UX de "conclusão")
+      // Delay estético
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      if (status === 'reserved') {
-        triggerConfetti();
-        addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
-      } else {
-        addToast('info', 'Tudo bem! O item voltou para a lista.');
+      // LÓGICA DE VERIFICAÇÃO PÓS-ESCRITA
+      if (updatedData) {
+        const confirmedItem = updatedData.find(g => g.id === giftId);
+        
+        // Se eu tentei reservar...
+        if (status === 'reserved') {
+          // ...e o item agora está no meu nome: Sucesso!
+          if (confirmedItem?.status === 'reserved' && confirmedItem?.reservedBy === reserverName) {
+             triggerConfetti();
+             addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
+          } 
+          // ...mas o item está reservado por OUTRA pessoa ou continua disponível (erro): Falha!
+          else {
+             showAlert(
+               'info', 
+               'Poxa! Alguém foi mais rápido.', 
+               `Parece que outra pessoa confirmou o item "${confirmedItem?.name}" segundos antes de você. A lista foi atualizada.`, 
+               () => {}
+             );
+             // O SWR já atualizou os dados reais, então a UI vai se corrigir sozinha
+          }
+        } else {
+           // Se eu tentei devolver (disponibilizar)
+           addToast('info', 'Tudo bem! O item voltou para a lista.');
+        }
       }
 
     } catch (e) {
       console.error("Erro ao salvar:", e);
       addToast('error', 'Ops! Houve um erro de conexão. Tente novamente.');
-      mutateGifts(originalGifts, false); // Reverte
+      mutateGifts(originalGifts, false); // Reverte visualmente
     } finally {
-      setIsProcessing(false); // Fecha o modal
+      setIsProcessing(false);
     }
   }, [gifts, mutateGifts]);
 
@@ -250,7 +278,6 @@ const App: React.FC = () => {
       <ProcessingModal isOpen={isProcessing} message={processingMessage} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
-      {/* Botão Voltar ao Topo */}
       <button
         onClick={scrollToTop}
         className={`
@@ -293,12 +320,12 @@ const App: React.FC = () => {
             <div className="text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
               <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
-                 <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                 <span className={`relative flex h-2 w-2 transition-opacity duration-500 ${isProcessing ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                   <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest opacity-60">
-                    Atualizada em tempo real
+                    {isProcessing ? 'Sincronizando...' : 'Atualizada em tempo real'}
                   </p>
               </div>
             </div>
@@ -342,6 +369,7 @@ const App: React.FC = () => {
           ) : (
             <GiftList 
               gifts={gifts} 
+              currentUser={user} // Passando o usuário para renderizar os Badges corretamente
               onReserve={(gift) => {
                 showAlert(
                     'confirm',
