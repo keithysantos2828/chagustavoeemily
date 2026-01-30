@@ -11,6 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
+import ProcessingModal from './components/ProcessingModal'; // Importando o novo modal
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { IconArrowUp, IconCrown } from './components/Icons';
 
@@ -25,7 +26,8 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [loadingAction, setLoadingAction] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Novo estado para o modal bloqueante
+  const [processingMessage, setProcessingMessage] = useState("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
@@ -100,31 +102,26 @@ const App: React.FC = () => {
   useEffect(() => {
     if (gifts.length === 0 || !user) return;
 
-    // Se é a primeira carga, apenas salva o estado
     if (prevGiftsRef.current.length === 0) {
       prevGiftsRef.current = gifts;
       return;
     }
 
-    // Compara o novo array (gifts) com o antigo (prevGiftsRef.current)
     gifts.forEach(newGift => {
       const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
       if (!oldGift) return;
 
-      // Caso 1: Alguém (que não sou eu) reservou um item que estava disponível
       if (oldGift.status === 'available' && newGift.status === 'reserved') {
         if (newGift.reservedBy !== user.name) {
           addToast('success', `Que amor! Alguém acabou de nos presentear com: ${newGift.name} ❤️`);
         }
       }
 
-      // Caso 2: Alguém liberou um item (voltou pra lista)
       if (oldGift.status === 'reserved' && newGift.status === 'available') {
         addToast('info', `O item ${newGift.name} voltou para a lista.`);
       }
     });
 
-    // Atualiza a referência
     prevGiftsRef.current = gifts;
   }, [gifts, user]);
 
@@ -139,7 +136,6 @@ const App: React.FC = () => {
     setUser(newUser);
   };
 
-  // Funções de Efeito Visual
   const triggerConfetti = () => {
     if (window.confetti) {
       window.confetti({
@@ -151,16 +147,21 @@ const App: React.FC = () => {
     }
   };
 
-  // Atualização Robusta
+  // Atualização Robusta com Modal Bloqueante
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    setLoadingAction(true);
+    // 1. Abre o modal de processamento imediatamente
+    setProcessingMessage(status === 'reserved' 
+      ? "Estamos embrulhando seu pedido e anotando seu nome..." 
+      : "Estamos devolvendo o item para a prateleira..."
+    );
+    setIsProcessing(true);
+
     const action = status === 'reserved' ? 'claim' : 'unclaim';
-    
-    // 1. UI Otimista (Para o usuário sentir rapidez)
     const originalGifts = [...gifts];
-    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
     
-    mutateGifts(optimisticGifts, false); // Atualiza tela sem revalidar ainda
+    // UI Otimista LOCAL (para o estado ficar consistente visualmente por baixo do modal)
+    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
+    mutateGifts(optimisticGifts, false); 
 
     try {
       // 2. Envia para o servidor
@@ -170,9 +171,12 @@ const App: React.FC = () => {
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
 
-      // 3. Força uma revalidação real para garantir que o servidor aceitou
+      // 3. Força uma revalidação real e aguarda ela terminar
       await mutateGifts();
       
+      // Pequeno delay artificial para garantir que o usuário leia a mensagem (opcional, mas bom para UX de "conclusão")
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       if (status === 'reserved') {
         triggerConfetti();
         addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
@@ -182,16 +186,17 @@ const App: React.FC = () => {
 
     } catch (e) {
       console.error("Erro ao salvar:", e);
-      addToast('error', 'Ops! Houve um erro de conexão. Tente novamente em instantes.');
-      // Reverte se deu erro de rede
-      mutateGifts(originalGifts, false);
+      addToast('error', 'Ops! Houve um erro de conexão. Tente novamente.');
+      mutateGifts(originalGifts, false); // Reverte
     } finally {
-      setLoadingAction(false);
+      setIsProcessing(false); // Fecha o modal
     }
   }, [gifts, mutateGifts]);
 
   const adminUpdateGift = async (giftId: string, updates: Partial<Gift>) => {
-    setLoadingAction(true);
+    setProcessingMessage("Atualizando as informações do item...");
+    setIsProcessing(true);
+    
     try {
       const gift = gifts.find(g => g.id === giftId);
       const finalGift = { ...gift, ...updates };
@@ -208,13 +213,14 @@ const App: React.FC = () => {
           urls: finalGift.shopeeUrl
         })
       });
-      addToast('success', 'Item atualizado com sucesso!');
+      
       await mutateGifts();
+      addToast('success', 'Item atualizado com sucesso!');
     } catch (e) {
       console.error(e);
       addToast('error', 'Erro ao atualizar item.');
     } finally {
-      setLoadingAction(false);
+      setIsProcessing(false);
     }
   };
 
@@ -241,15 +247,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] pb-24 md:pb-10">
       <CustomAlert {...alertConfig} />
+      <ProcessingModal isOpen={isProcessing} message={processingMessage} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
-      {/* Loading Bar Global */}
-      {(loadingAction || !gifts.length) && (
-        <div className="fixed top-0 left-0 w-full h-1.5 bg-[#52796F]/10 z-[999] overflow-hidden">
-          <div className="h-full bg-[#B07D62] animate-[loading_1s_infinite_linear] w-[30%] shadow-[0_0_10px_#B07D62]"></div>
-        </div>
-      )}
-
       {/* Botão Voltar ao Topo */}
       <button
         onClick={scrollToTop}
@@ -358,12 +358,6 @@ const App: React.FC = () => {
 
         <Footer onShowAlert={showAlert} />
       </div>
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(250%); }
-        }
-      `}</style>
     </div>
   );
 };
