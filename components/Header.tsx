@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
         </div>
 
         <p className="mt-8 max-w-xl mx-auto text-[#52796F] font-serif text-lg md:text-2xl italic leading-relaxed">
-          "Construindo nosso sonho, tijolinho por tijolinho, com a ajuda de quem amamos."
+          "Construindo nosso cantinho, tijolinho por tijolinho, com a ajuda de quem amamos."
         </p>
       </div>
     </header>

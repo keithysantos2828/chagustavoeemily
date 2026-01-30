@@ -31,7 +31,7 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts }) => {
             Mural de Carinho
           </h3>
           <p className="text-[10px] text-[#84A98C] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] mt-2 md:mt-3">
-            Quem já está construindo esse sonho com a gente
+            Quem já está participando com a gente
           </p>
         </div>
         

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Gift } from '../types';
 import { EVENT_DATE } from '../constants';
-import { IconSparkles, IconHeart, IconCheck, IconGift, IconShoppingCart, IconEye, IconArrowRight, IconArrowUp } from './Icons';
+import { IconSparkles, IconHeart, IconCheck, IconGift, IconShoppingCart, IconEye, IconArrowRight, IconArrowUp, IconUser } from './Icons';
 
 // Declaração para o TypeScript entender a biblioteca global
 declare global {
@@ -90,11 +90,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gifts, onUpdateGift }) => {
       <div className="mb-6 md:mb-10 text-center md:text-left">
          <div className="inline-flex items-center gap-2 bg-[#B07D62]/10 px-4 py-1.5 rounded-full mb-4 border border-[#B07D62]/20">
             <IconSparkles className="w-4 h-4 text-[#B07D62]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#B07D62]">Área da Noiva</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#B07D62]">Área Administrativa</span>
          </div>
          <h2 className="text-3xl md:text-5xl font-cursive text-[#354F52] mb-2">Olá, Emily!</h2>
          <p className="text-[#52796F] text-xs md:text-base max-w-lg mx-auto md:mx-0">
-           Aqui você controla todos os detalhes do nosso sonho.
+           Aqui você controla os detalhes do Chá de Casa Nova.
          </p>
       </div>
 
@@ -214,43 +214,55 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gifts, onUpdateGift }) => {
               <div 
                 key={gift.id} 
                 onClick={() => window.innerWidth < 768 && setEditingGift(gift)} // Mobile: Click card to edit
-                className="
-                  group flex items-center gap-4 p-3 rounded-2xl border border-transparent 
+                className={`
+                  group relative flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-2xl border 
                   bg-stone-50/30 transition-all cursor-pointer md:cursor-default
                   /* Desktop Hover */
                   md:hover:border-[#52796F]/10 md:hover:bg-[#F8F7F2]/50
                   /* Mobile Active */
                   active:bg-stone-100 active:scale-[0.99]
-                "
+                  ${gift.status === 'reserved' ? 'border-green-100 bg-green-50/30' : 'border-transparent'}
+                `}
               >
-                {/* Imagem */}
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white p-1 shadow-sm flex-shrink-0">
-                  <img src={gift.imageUrl} alt="" className="w-full h-full object-cover rounded-lg" />
+                <div className="flex items-center gap-4">
+                  {/* Imagem */}
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white p-1 shadow-sm flex-shrink-0">
+                    <img src={gift.imageUrl} alt="" className="w-full h-full object-cover rounded-lg" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-[#354F52] text-sm truncate">{gift.name}</p>
+                      {gift.status === 'reserved' && (
+                        <span className="bg-green-100 text-green-700 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
+                          Ganho
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#84A98C]">
+                      {gift.category} • R$ {gift.priceEstimate.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Info */}
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold text-[#354F52] text-sm truncate">{gift.name}</p>
-                    {gift.status === 'reserved' && (
-                       <span className="bg-green-100 text-green-700 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
-                         Ganho
-                       </span>
-                    )}
+                {/* Destaque de Quem Presenteou (Visível em Mobile e Desktop) */}
+                {gift.reservedBy && (
+                  <div className="md:ml-auto md:mr-4 w-full md:w-auto mt-2 md:mt-0">
+                    <div className="bg-[#B07D62]/10 px-3 py-2 rounded-lg border border-[#B07D62]/20 flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-[#B07D62] text-white flex items-center justify-center flex-shrink-0">
+                         <IconUser className="w-4 h-4" />
+                       </div>
+                       <div>
+                         <span className="text-[8px] text-[#B07D62] font-black uppercase tracking-widest block leading-tight">Presenteado por</span>
+                         <span className="text-sm font-bold text-[#354F52]">{gift.reservedBy}</span>
+                       </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-[#84A98C]">
-                    {gift.category} • R$ {gift.priceEstimate.toFixed(2)}
-                  </p>
-                  {gift.reservedBy && (
-                    <p className="text-[10px] text-[#B07D62] font-bold mt-1 flex items-center gap-1">
-                      <IconHeart className="w-3 h-3" />
-                      {gift.reservedBy}
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {/* Ações Desktop (Escondidas no mobile para limpar visual) */}
-                <div className="hidden md:flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2 ml-auto md:ml-0">
                    {gift.shopeeUrl && (
                      <a 
                        href={gift.shopeeUrl} 
@@ -268,11 +280,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gifts, onUpdateGift }) => {
                    >
                      Editar
                    </button>
-                </div>
-
-                {/* Indicador Mobile */}
-                <div className="md:hidden text-stone-300">
-                  <IconArrowRight className="w-5 h-5" />
                 </div>
               </div>
             ))

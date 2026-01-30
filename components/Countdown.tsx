@@ -84,7 +84,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       setSubMessage("O grande dia chegou, obrigado por fazerem parte disso!");
     } else if (currentMode === 'PAST') {
       setHeroMessage("Nossa nova fase começou! 🏡");
-      setSubMessage("Obrigado por ajudarem a construir esse sonho.");
+      setSubMessage("Obrigado por ajudarem a construir esse cantinho.");
     }
   };
 
@@ -142,7 +142,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
           {/* Se for passado, mostra DIAS como destaque principal "Dias de casados/casa nova" */}
           {mode === 'PAST' && (
              <div className="flex flex-col items-center gap-2">
-                {renderCounterItem(timeLeft.dias, 'Dias de Sonho')}
+                {renderCounterItem(timeLeft.dias, 'Dias de Casa Nova')}
              </div>
           )}
 
