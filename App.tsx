@@ -10,7 +10,7 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
-import { IconArrowUp } from './components/Icons'; // Importando ícone
+import { IconArrowUp, IconCrown } from './components/Icons'; // Importando ícone
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -239,9 +239,27 @@ const App: React.FC = () => {
               {user.isAdmin && (
                 <button 
                   onClick={() => setShowAdmin(!showAdmin)}
-                  className="w-full md:w-auto px-6 py-3 bg-[#52796F] text-white rounded-full hover:bg-[#354F52] transition-all shadow-xl font-bold uppercase tracking-widest text-[10px]"
+                  className={`
+                    w-full md:w-auto px-6 py-3 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all shadow-xl flex items-center justify-center gap-2 relative group overflow-hidden
+                    ${showAdmin 
+                      ? 'bg-[#52796F] text-white hover:bg-[#354F52]' 
+                      : 'bg-white text-[#B07D62] border-2 border-[#B07D62] hover:bg-[#B07D62] hover:text-white'
+                    }
+                  `}
                 >
-                  {showAdmin ? 'Fechar Painel' : 'Painel da Emily'}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {showAdmin ? (
+                      <>
+                        <IconArrowUp className="w-4 h-4" />
+                        Fechar Painel
+                      </>
+                    ) : (
+                      <>
+                        <IconCrown className="w-4 h-4 animate-pulse" />
+                        Painel da Emily
+                      </>
+                    )}
+                  </span>
                 </button>
               )}
             </div>
