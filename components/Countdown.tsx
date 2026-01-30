@@ -80,7 +80,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     }
   };
   
-  const renderCounterItem = (value: number, label: string, isUrgent: boolean = false) => (
+  const renderCounterItem = (value: number, label: string, isUrgent: boolean = false, padZero: boolean = true) => (
     <div className="flex flex-col items-center flex-1 min-w-[70px] max-w-[110px] md:max-w-[130px] animate-in zoom-in-50 duration-500">
       <div className={`
         w-full backdrop-blur-md border rounded-2xl md:rounded-[2rem] py-3 md:py-5 
@@ -100,7 +100,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
           text-3xl sm:text-4xl md:text-5xl font-bold leading-none mb-1 md:mb-2 tabular-nums tracking-tighter
           ${mode === 'PAST' ? 'text-[#B07D62]' : isUrgent ? 'text-white' : 'text-[#354F52]'}
         `}>
-          {(value || 0).toString().padStart(2, '0')}
+          {padZero ? (value || 0).toString().padStart(2, '0') : (value || 0)}
         </span>
         <span className={`
           text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black transition-opacity
@@ -145,7 +145,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       ) : (
         <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4 max-w-4xl mx-auto px-2 w-full flex-wrap">
           
-          {/* Lógica "Viva" de Exibição: Removemos unidades zeradas à esquerda */}
+          {/* Lógica "Viva": Removemos unidades zeradas à esquerda e tiramos o padding (0) da unidade maior para ser mais orgânico */}
           
           {mode === 'PAST' && (
              <div className="flex flex-col items-center gap-2">
@@ -155,11 +155,12 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
 
           {mode === 'FUTURE' && (
             <>
-              {timeLeft.dias > 0 && renderCounterItem(timeLeft.dias, timeLeft.dias === 1 ? 'Dia' : 'Dias')}
+              {/* Se dias > 0, mostramos sem zero à esquerda (ex: 9 Dias, não 09) */}
+              {timeLeft.dias > 0 && renderCounterItem(timeLeft.dias, timeLeft.dias === 1 ? 'Dia' : 'Dias', false, false)}
               
               {/* Se Dias > 0, mostramos Horas normais. Se Dias == 0, Horas vira o destaque (Urgente) */}
               {(timeLeft.dias > 0 || timeLeft.horas > 0) && 
-                renderCounterItem(timeLeft.horas, timeLeft.dias === 0 ? 'Horas Restantes' : 'Horas', isUrgentMode)}
+                renderCounterItem(timeLeft.horas, timeLeft.dias === 0 ? 'Horas Restantes' : 'Horas', isUrgentMode, timeLeft.dias > 0)}
               
               {/* Minutos sempre aparecem, a menos que estejamos nos últimos segundos */}
               {(timeLeft.dias > 0 || timeLeft.horas > 0 || timeLeft.minutos > 0) && 

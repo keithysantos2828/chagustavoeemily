@@ -56,7 +56,7 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
       </div>
       
       {/* Lista de Nomes (Chips) */}
-      <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
+      <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4">
         {giverNames.map((name, index) => {
           const isMe = currentUser && name === currentUser.name;
           
@@ -64,15 +64,16 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
             <div 
               key={index} 
               className={`
-                group flex items-center gap-2 pl-1 pr-3 py-1 rounded-full shadow-sm transition-all cursor-default
+                group flex items-center gap-2 pl-1 pr-4 py-1.5 rounded-full shadow-sm cursor-default
+                transition-all duration-500
                 ${isMe 
-                  ? 'bg-[#FDFCF8] border-2 border-[#B07D62] scale-105 shadow-md z-10' 
+                  ? 'bg-[#FDFCF8] border-2 border-[#B07D62] scale-105 shadow-md z-10 animate-in zoom-in-50 spin-in-2' 
                   : 'bg-white border border-[#52796F]/10 hover:shadow-md hover:border-[#B07D62]/30'
                 }
               `}
             >
               <div className={`
-                w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[10px] md:text-xs font-bold uppercase shadow-inner
+                w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-[10px] md:text-xs font-bold uppercase shadow-inner
                 ${isMe ? 'bg-[#B07D62] text-white' : 'bg-gradient-to-br from-[#52796F] to-[#354F52] text-white'}
               `}>
                 {isMe ? <IconCheck className="w-3 h-3 md:w-4 md:h-4" /> : name.charAt(0)}
@@ -86,13 +87,18 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
 
         {/* Slot Vazio - Convite para o usuário se ele ainda não estiver na lista */}
         {!amIInList && currentUser && (
-          <div className="animate-pulse flex items-center gap-2 pl-1 pr-3 py-1 border-2 border-dashed border-[#B07D62]/30 bg-[#B07D62]/5 rounded-full cursor-default opacity-80 hover:opacity-100 transition-opacity">
-            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#B07D62]/10 flex items-center justify-center text-[#B07D62]">
-               <IconUser className="w-3 h-3 md:w-4 md:h-4" />
+          <div className="group flex items-center gap-3 pl-1.5 pr-5 py-1.5 border-2 border-dashed border-[#B07D62]/30 bg-[#B07D62]/5 rounded-full cursor-default hover:bg-[#B07D62]/10 transition-all duration-500 hover:scale-105 active:scale-95 hover:border-[#B07D62]/50">
+            <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-[#B07D62]/10 flex items-center justify-center text-[#B07D62] group-hover:animate-bounce">
+               <IconUser className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </div>
-            <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-[#B07D62]">
-              Só falta você!
-            </span>
+            <div className="flex flex-col justify-center">
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-[#B07D62]">
+                Seu lugar está aqui
+              </span>
+              <span className="text-[8px] text-[#B07D62]/70 font-bold leading-none hidden md:block">
+                Escolha um presente
+              </span>
+            </div>
           </div>
         )}
       </div>
