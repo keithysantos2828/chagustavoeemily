@@ -1,28 +1,10 @@
 // ============================================================================
 // 🏡 SCRIPT DE BACKEND - CHÁ DE CASA NOVA (EMILY & GUSTAVO)
 // ============================================================================
-// Instruções:
-// 1. Copie TODO este código.
-// 2. Vá na sua Planilha Google > Extensões > Apps Script.
-// 3. Apague qualquer código que estiver lá e cole este.
-// 4. Salve o projeto.
-// 5. Para limpar a planilha antiga e colocar os presentes novos:
-//    - Selecione a função "RESETAR_E_POPULAR_PLANILHA" na barra superior.
-//    - Clique em "Executar".
-// 6. Para colocar o site no ar:
-//    - Clique em "Implantar" > "Nova Implantação".
-//    - Tipo: "App da Web".
-//    - Descrição: "Versão 1".
-//    - Executar como: "Eu".
-//    - Quem pode acessar: "Qualquer pessoa" (IMPORTANTE).
-//    - Copie a URL gerada e coloque no arquivo constants.ts do site.
-// ============================================================================
 
 const SHEET_NAME = "Presentes";
 
-// Configuração dos Presentes Iniciais (Para a função de Reset)
-// OBS: Imagens e Preços são estimativas iniciais para o site não ficar vazio.
-// Você pode editar tudo depois pelo Painel Admin do site.
+// Configuração dos Presentes Iniciais
 const INITIAL_DATA = [
   {
     category: "Cozinha",
@@ -101,14 +83,10 @@ function RESETAR_E_POPULAR_PLANILHA() {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
   } else {
-    sheet.clear(); // Limpa TUDO
+    sheet.clear();
   }
 
-  // Cria Cabeçalho
-  // Colunas: id, name, category, priceEstimate, imageUrl, shopeeUrl, status, reservedBy
   sheet.appendRow(["id", "name", "category", "priceEstimate", "imageUrl", "shopeeUrl", "status", "reservedBy"]);
-  
-  // Formata Cabeçalho
   sheet.getRange("A1:H1").setFontWeight("bold").setBackground("#354F52").setFontColor("white");
 
   var rows = [];
@@ -117,14 +95,14 @@ function RESETAR_E_POPULAR_PLANILHA() {
   INITIAL_DATA.forEach(category => {
     category.items.forEach(item => {
       rows.push([
-        idCounter.toString(),   // ID
-        item.name,              // Nome
-        category.category,      // Categoria
-        item.price,             // Preço
-        item.image || "https://placehold.co/400x400?text=Presente", // Imagem
-        item.link || "",        // Link Shopee (Vazio se não tiver)
-        "available",            // Status
-        ""                      // Reservado Por
+        idCounter.toString(),
+        item.name,
+        category.category,
+        item.price,
+        item.image || "https://placehold.co/400x400?text=Presente",
+        item.link || "",
+        "available",
+        ""
       ]);
       idCounter++;
     });
@@ -134,13 +112,12 @@ function RESETAR_E_POPULAR_PLANILHA() {
     sheet.getRange(2, 1, rows.length, 8).setValues(rows);
   }
 
-  // Ajusta larguras
-  sheet.setColumnWidth(2, 300); // Nome mais largo
-  sheet.setColumnWidth(6, 200); // URL mais largo
+  sheet.setColumnWidth(2, 300);
+  sheet.setColumnWidth(6, 200);
 }
 
 // ============================================================================
-// FUNÇÕES DA API (Não mexer muito)
+// API
 // ============================================================================
 
 function doGet(e) {
@@ -153,13 +130,15 @@ function doPost(e) {
 
 function handleRequest(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  // Aguarda até 10s para conseguir exclusividade de escrita. Isso evita conflitos.
+  if (!lock.tryLock(10000)) {
+     return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Server busy"})).setMimeType(ContentService.MimeType.JSON);
+  }
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(SHEET_NAME);
     
-    // Se a aba não existir, cria
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_NAME);
       sheet.appendRow(["id", "name", "category", "priceEstimate", "imageUrl", "shopeeUrl", "status", "reservedBy"]);
@@ -167,7 +146,6 @@ function handleRequest(e) {
 
     var method = e.postData ? "POST" : "GET";
     
-    // --- LEITURA (GET) ---
     if (method === "GET") {
       var data = sheet.getDataRange().getValues();
       var headers = data[0];
@@ -186,7 +164,6 @@ function handleRequest(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // --- ESCRITA (POST) ---
     if (method === "POST") {
       var params = JSON.parse(e.postData.contents);
       var action = params.action;
@@ -195,18 +172,23 @@ function handleRequest(e) {
       var data = sheet.getDataRange().getValues();
       var rowIndex = -1;
 
-      // Procura o item pelo ID
       for (var i = 1; i < data.length; i++) {
         if (String(data[i][0]) === String(giftId)) {
-          rowIndex = i + 1; // +1 porque array começa em 0 mas planilha linha 1 é header
+          rowIndex = i + 1;
           break;
         }
       }
 
       if (rowIndex !== -1) {
-        // Ações de Reserva
         if (action === "claim") {
-          // Coluna G (7) é Status, Coluna H (8) é ReservedBy
+          // RACE CONDITION CHECK: Verifica se JÁ está reservado antes de escrever
+          var currentStatus = sheet.getRange(rowIndex, 7).getValue();
+          if (currentStatus === "reserved") {
+             // Retorna um erro específico que o front pode tratar se não for no-cors
+             return ContentService.createTextOutput(JSON.stringify({status: "error", message: "ALREADY_RESERVED"}))
+               .setMimeType(ContentService.MimeType.JSON);
+          }
+
           sheet.getRange(rowIndex, 7).setValue("reserved");
           sheet.getRange(rowIndex, 8).setValue(params.guestName || "Anônimo");
         } 
@@ -214,9 +196,7 @@ function handleRequest(e) {
           sheet.getRange(rowIndex, 7).setValue("available");
           sheet.getRange(rowIndex, 8).setValue("");
         }
-        // Ação de Edição (Admin)
         else if (action === "edit") {
-          // name(2), category(3), price(4), image(5), url(6)
           if(params.name) sheet.getRange(rowIndex, 2).setValue(params.name);
           if(params.category) sheet.getRange(rowIndex, 3).setValue(params.category);
           if(params.priceEstimate) sheet.getRange(rowIndex, 4).setValue(params.priceEstimate);

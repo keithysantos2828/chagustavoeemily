@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import useSWR, { mutate } from 'swr';
 import { User, Gift } from './types';
 import { INITIAL_GIFTS, ADMIN_NAME, EVENT_DATE, SHEET_SCRIPT_URL } from './constants';
 import Onboarding from './components/Onboarding';
@@ -10,14 +11,38 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
-import { IconArrowUp, IconCrown } from './components/Icons'; // Importando ícone
+import { ToastContainer, ToastMessage } from './components/Toast';
+import { IconArrowUp, IconCrown } from './components/Icons';
+
+declare global {
+  interface Window {
+    confetti: any;
+  }
+}
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false); // Estado para o botão de topo
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  
+  // Referência para guardar o estado anterior e comparar mudanças (Real-time notifications)
+  const prevGiftsRef = useRef<Gift[]>([]);
+
+  // SWR: Polling de 5 segundos para garantir sensação de tempo real
+  const { data: gifts = [], error, mutate: mutateGifts } = useSWR<Gift[]>(
+    SHEET_SCRIPT_URL, 
+    fetcher, 
+    { 
+      fallbackData: [],
+      refreshInterval: 5000, 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000
+    }
+  );
 
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
@@ -34,6 +59,15 @@ const App: React.FC = () => {
     onConfirm: () => {}
   });
 
+  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, type, message }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   const showAlert = (type: AlertType, title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
     setAlertConfig({
       isOpen: true,
@@ -41,8 +75,8 @@ const App: React.FC = () => {
       title,
       message,
       onConfirm: () => {
-        onConfirm();
-        closeAlert();
+        onConfirm(); // Executa a ação
+        closeAlert(); // Fecha o modal
       },
       onCancel: onCancel ? () => {
         onCancel();
@@ -53,47 +87,48 @@ const App: React.FC = () => {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
-  const refreshGifts = async () => {
-    if (!SHEET_SCRIPT_URL) return;
-    try {
-      const response = await fetch(SHEET_SCRIPT_URL);
-      const data = await response.json();
-      setGifts(data);
-      localStorage.setItem('housewarming_gifts', JSON.stringify(data));
-    } catch (error) {
-      console.error("Erro ao sincronizar com Sheets:", error);
-    }
-  };
-
-  useEffect(() => {
-    const savedGifts = localStorage.getItem('housewarming_gifts');
-    if (savedGifts) setGifts(JSON.parse(savedGifts));
-    refreshGifts();
-    
-    const interval = setInterval(refreshGifts, 20000); 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Lógica de Scroll para o botão "Voltar ao Topo"
+  // Scroll to top logic
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
+      setShowScrollTop(window.scrollY > 400);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+  // Lógica de Notificações em Tempo Real (Humanizada)
+  useEffect(() => {
+    if (gifts.length === 0 || !user) return;
+
+    // Se é a primeira carga, apenas salva o estado
+    if (prevGiftsRef.current.length === 0) {
+      prevGiftsRef.current = gifts;
+      return;
+    }
+
+    // Compara o novo array (gifts) com o antigo (prevGiftsRef.current)
+    gifts.forEach(newGift => {
+      const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
+      if (!oldGift) return;
+
+      // Caso 1: Alguém (que não sou eu) reservou um item que estava disponível
+      if (oldGift.status === 'available' && newGift.status === 'reserved') {
+        if (newGift.reservedBy !== user.name) {
+          addToast('success', `Que amor! Alguém acabou de nos presentear com: ${newGift.name} ❤️`);
+        }
+      }
+
+      // Caso 2: Alguém liberou um item (voltou pra lista)
+      if (oldGift.status === 'reserved' && newGift.status === 'available') {
+        addToast('info', `O item ${newGift.name} voltou para a lista.`);
+      }
     });
-  };
+
+    // Atualiza a referência
+    prevGiftsRef.current = gifts;
+  }, [gifts, user]);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const handleOnboarding = (name: string) => {
     localStorage.setItem('housewarming_user_name', name);
@@ -104,33 +139,59 @@ const App: React.FC = () => {
     setUser(newUser);
   };
 
+  // Funções de Efeito Visual
+  const triggerConfetti = () => {
+    if (window.confetti) {
+      window.confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#B07D62', '#52796F', '#F8F7F2', '#FFD700']
+      });
+    }
+  };
+
+  // Atualização Robusta
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    setLoading(true);
+    setLoadingAction(true);
     const action = status === 'reserved' ? 'claim' : 'unclaim';
     
-    // UI otimista
-    setGifts(prev => prev.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g));
+    // 1. UI Otimista (Para o usuário sentir rapidez)
+    const originalGifts = [...gifts];
+    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
+    
+    mutateGifts(optimisticGifts, false); // Atualiza tela sem revalidar ainda
 
     try {
+      // 2. Envia para o servidor
       await fetch(SHEET_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
+
+      // 3. Força uma revalidação real para garantir que o servidor aceitou
+      await mutateGifts();
       
       if (status === 'reserved') {
-        // Feedback visual sutil
+        triggerConfetti();
+        addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
+      } else {
+        addToast('info', 'Tudo bem! O item voltou para a lista.');
       }
-      refreshGifts();
+
     } catch (e) {
       console.error("Erro ao salvar:", e);
+      addToast('error', 'Ops! Houve um erro de conexão. Tente novamente em instantes.');
+      // Reverte se deu erro de rede
+      mutateGifts(originalGifts, false);
     } finally {
-      setLoading(false);
+      setLoadingAction(false);
     }
-  }, []);
+  }, [gifts, mutateGifts]);
 
   const adminUpdateGift = async (giftId: string, updates: Partial<Gift>) => {
-    setLoading(true);
+    setLoadingAction(true);
     try {
       const gift = gifts.find(g => g.id === giftId);
       const finalGift = { ...gift, ...updates };
@@ -147,11 +208,13 @@ const App: React.FC = () => {
           urls: finalGift.shopeeUrl
         })
       });
-      setTimeout(refreshGifts, 1000);
+      addToast('success', 'Item atualizado com sucesso!');
+      await mutateGifts();
     } catch (e) {
       console.error(e);
+      addToast('error', 'Erro ao atualizar item.');
     } finally {
-      setLoading(false);
+      setLoadingAction(false);
     }
   };
 
@@ -176,18 +239,18 @@ const App: React.FC = () => {
   const hasItemsInCart = userReservedGifts.length > 0;
 
   return (
-    // Removido overflow-x-hidden daqui para corrigir o position: sticky dos filtros
-    // O controle de overflow horizontal agora fica por conta do body no CSS global
     <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] pb-24 md:pb-10">
       <CustomAlert {...alertConfig} />
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       
-      {loading && (
-        <div className="fixed top-0 left-0 w-full h-1 bg-[#52796F] z-[999] overflow-hidden">
-          <div className="h-full bg-green-300 animate-[loading_1.5s_infinite_linear] w-[40%]"></div>
+      {/* Loading Bar Global */}
+      {(loadingAction || !gifts.length) && (
+        <div className="fixed top-0 left-0 w-full h-1.5 bg-[#52796F]/10 z-[999] overflow-hidden">
+          <div className="h-full bg-[#B07D62] animate-[loading_1s_infinite_linear] w-[30%] shadow-[0_0_10px_#B07D62]"></div>
         </div>
       )}
 
-      {/* Botão Voltar ao Topo - Posição dinâmica baseada no carrinho */}
+      {/* Botão Voltar ao Topo */}
       <button
         onClick={scrollToTop}
         className={`
@@ -195,7 +258,6 @@ const App: React.FC = () => {
           transition-all duration-500 hover:bg-[#2A3F41] active:scale-95 border border-white/10
           flex items-center justify-center
           ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
-          /* Se tiver itens no carrinho, sobe o botão (bottom-24), senão fica normal (bottom-6) */
           ${hasItemsInCart ? 'bottom-24 md:bottom-32' : 'bottom-6 md:bottom-8'}
         `}
         aria-label="Voltar ao topo"
@@ -230,9 +292,15 @@ const App: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
             <div className="text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
-              <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest mt-2 opacity-60">
-                Atualizada em tempo real
-              </p>
+              <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
+                 <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest opacity-60">
+                    Atualizada em tempo real
+                  </p>
+              </div>
             </div>
             
             <div className="flex gap-4 w-full md:w-auto px-4 md:px-0">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Gift } from '../types';
-import { IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconArrowRight, IconSparkles } from './Icons';
+import { IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSparkles } from './Icons';
 
 interface GiftListProps {
   gifts: Gift[];
@@ -76,6 +76,29 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
+  // Filtros Persistentes: Lê a URL ao carregar
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const categoryParam = params.get('category');
+    if (categoryParam) {
+      setActiveTab(categoryParam);
+    }
+  }, []);
+
+  // Filtros Persistentes: Atualiza a URL ao mudar
+  const handleTabChange = (category: string) => {
+    setActiveTab(category);
+    setSearchTerm('');
+    
+    const url = new URL(window.location.href);
+    if (category === 'Todos') {
+      url.searchParams.delete('category');
+    } else {
+      url.searchParams.set('category', category);
+    }
+    window.history.pushState({}, '', url);
+  };
+
   const categories = useMemo(() => {
     const cats = Array.from(new Set(gifts.map(g => g.category)));
     return ['Todos', ...cats];
@@ -109,6 +132,10 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
   useEffect(() => {
     if (searchTerm.trim() && activeTab !== 'Todos') {
       setActiveTab('Todos');
+      // Limpa filtro de categoria da URL se buscar
+      const url = new URL(window.location.href);
+      url.searchParams.delete('category');
+      window.history.pushState({}, '', url);
     }
   }, [searchTerm]);
 
@@ -120,7 +147,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
 
   return (
     <div className="space-y-6 md:space-y-10">
-      {/* Sticky Filters Area - High Z-Index to stay above cards */}
+      {/* Sticky Filters Area */}
       <div className="sticky top-0 z-50 py-2 md:py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
         <div className="flex flex-col gap-3 md:gap-4 max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
@@ -145,10 +172,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
                 {categories.map(cat => (
                   <button
                     key={cat}
-                    onClick={() => {
-                      setActiveTab(cat);
-                      setSearchTerm('');
-                    }}
+                    onClick={() => handleTabChange(cat)}
                     className={`whitespace-nowrap px-5 py-2.5 md:py-2 rounded-xl md:rounded-full text-[11px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 md:active:scale-100 ${
                       activeTab === cat && !searchTerm 
                         ? 'bg-[#354F52] text-white shadow-md transform scale-105 md:scale-100' 
@@ -189,16 +213,13 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
               className={`
                 group bg-white rounded-3xl overflow-hidden shadow-sm border border-[#52796F]/5 
                 relative flex flex-col
-                /* Mobile: No hover effects, solid touch feel */
                 active:scale-[0.98] transition-transform duration-100 md:active:scale-100
-                /* Desktop: Elegant lift and shadow */
                 md:hover:shadow-2xl md:hover:-translate-y-2 md:transition-all md:duration-500
                 ${isReserved ? 'opacity-70 grayscale-[0.3]' : ''}
               `}
             >
               <GiftImage src={gift.imageUrl} alt={gift.name} isReserved={isReserved} />
               
-              {/* Price Badge */}
               <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-[#354F52] shadow-sm border border-white/50 z-10">
                 R$ {gift.priceEstimate?.toFixed(2)}
               </div>
@@ -213,10 +234,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
                 
                 {!isReserved ? (
                   <div className="space-y-2 md:space-y-2.5">
-                    {/* 
-                      Mobile Strategy: Buttons always visible and touch-friendly.
-                      Desktop Strategy: Buttons appear on hover (Reveal effect) for cleanliness.
-                    */}
                     <div className={`
                       flex flex-col gap-2 
                       md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 md:transition-all md:duration-500 md:ease-out
@@ -268,25 +285,46 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
         })}
       </div>
       
+      {/* Empty State Humanizado */}
       {filteredGifts.length === 0 && (
-        <div className="text-center py-20 opacity-40 flex flex-col items-center animate-in zoom-in-95">
-          <div className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mb-4">
-             <IconGift className="w-8 h-8 text-stone-400" />
+        <div className="text-center py-24 flex flex-col items-center animate-in zoom-in-95">
+          <div className="relative mb-6">
+             <div className="w-24 h-24 bg-[#B07D62]/10 rounded-full flex items-center justify-center">
+                <IconSparkles className="w-10 h-10 text-[#B07D62]" />
+             </div>
+             <div className="absolute top-0 right-0 w-8 h-8 bg-[#52796F] rounded-full flex items-center justify-center border-2 border-white">
+                <IconCheck className="w-4 h-4 text-white" />
+             </div>
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-stone-500">
+          
+          <h3 className="text-2xl font-cursive text-[#354F52] mb-2">
+             {showAvailableOnly ? 'Uau! Que Incrível!' : 'Nenhum item encontrado'}
+          </h3>
+          
+          <p className="text-sm md:text-base text-[#52796F] max-w-md px-4 leading-relaxed">
             {searchTerm 
-              ? `Não encontramos nada com "${searchTerm}".` 
+              ? <>Não encontramos nada com <strong>"{searchTerm}"</strong>.<br/>Tente buscar por outra palavra.</>
               : showAvailableOnly 
-                ? 'Lista zerada! Vocês são incríveis! ❤️' 
-                : 'Carregando lista...'}
+                ? <>Todos os itens desta categoria já foram escolhidos! Vocês são rápidos demais! ❤️</>
+                : 'A lista está sendo carregada ou não há itens nesta categoria.'}
           </p>
+
           {searchTerm && (
             <button 
               onClick={() => setSearchTerm('')}
-              className="mt-4 text-[#B07D62] font-black uppercase tracking-widest text-[10px] hover:underline"
+              className="mt-6 px-6 py-3 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#2A3F41] transition-all"
             >
               Limpar busca
             </button>
+          )}
+          
+          {showAvailableOnly && !searchTerm && (
+             <button 
+               onClick={() => setShowAvailableOnly(false)}
+               className="mt-6 text-[#B07D62] font-black uppercase tracking-widest text-[10px] hover:underline"
+             >
+               Ver itens já ganhos
+             </button>
           )}
         </div>
       )}
