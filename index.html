@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#F8F7F2" />
     
     <!-- Correção: Meta tag mobile atualizada -->
@@ -15,7 +15,7 @@
     
     <title>Chá de Casa Nova | Emily & Gustavo</title>
     
-    <!-- Tailwind via CDN (Gera aviso no console, mas funciona para este propósito) -->
+    <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400;1,600&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
@@ -36,6 +36,8 @@
         overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
         -webkit-tap-highlight-color: transparent;
+        /* Previne o bounce elástico no iOS em excesso */
+        overscroll-behavior-y: none;
       }
 
       :focus-visible {
@@ -44,28 +46,36 @@
         border-radius: 4px;
       }
 
-      /* Noise Texture Overlay */
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
-        pointer-events: none;
-        z-index: -1;
+      /* Noise Texture Overlay - Apenas Desktop para performance */
+      @media (min-width: 768px) {
+        body::before {
+          content: "";
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+          pointer-events: none;
+          z-index: -1;
+        }
       }
 
       .font-cursive { font-family: 'Dancing Script', cursive; }
       .font-serif { font-family: 'Cormorant Garamond', serif; }
       
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(82, 121, 111, 0.2); border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: var(--sage); }
+      /* Scrollbar Customizada (Desktop) */
+      @media (min-width: 768px) {
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(82, 121, 111, 0.2); border-radius: 10px; border: 2px solid var(--sand); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--sage); }
+      }
+
+      /* Ocultar Scrollbar (Mobile Experience) */
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
       .custom-scrollbar::-webkit-scrollbar { width: 4px; }
       .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
       .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
@@ -84,6 +94,11 @@
         opacity: 0.08;
         filter: blur(1px);
         animation: float 15s infinite ease-in-out;
+      }
+      
+      /* Oculta folhas em telas muito pequenas para limpar a visão */
+      @media (max-width: 640px) {
+        .leaf-float { display: none; }
       }
     </style>
   <script type="importmap">
@@ -107,7 +122,6 @@
     <div class="leaf-float text-[#B07D62]" style="bottom: 10%; left: 5%; font-size: 6rem; animation-delay: -8s; opacity: 0.05;">🌱</div>
     <div class="leaf-float text-[#52796F]" style="bottom: -5%; right: 10%; font-size: 10rem; animation-delay: -12s;">🌿</div>
 
-    <!-- O "Elo Perdido": Este script conecta o HTML ao seu código React -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

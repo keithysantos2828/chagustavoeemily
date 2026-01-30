@@ -18,7 +18,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
 
   const validateAndSubmit = (nameToSubmit: string) => {
     const trimmed = nameToSubmit.trim();
-    // Exige pelo menos um espaço (indica Nome + Sobrenome)
     if (trimmed.split(' ').length < 2 && trimmed.toLowerCase() !== 'emily thalia') {
       setError('Por favor, digite seu Nome e Sobrenome para identificarmos você na lista. 😊');
       return;
@@ -55,10 +54,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
   return (
     <div className={`fixed inset-0 bg-[#F8F7F2] flex items-center justify-center p-4 z-[200] overflow-hidden transition-all duration-1000 ${isOpening ? 'opacity-0 scale-110' : 'opacity-100'}`}>
       
-      {/* Background Ambience */}
+      {/* Background Ambience - Simplified for Mobile Performance */}
       <div className="absolute inset-0 pointer-events-none">
-         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#52796F]/10 rounded-full blur-[100px] animate-pulse"></div>
-         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#B07D62]/10 rounded-full blur-[100px]"></div>
+         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#52796F]/10 rounded-full blur-[60px] md:blur-[100px] animate-pulse"></div>
+         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#B07D62]/10 rounded-full blur-[60px] md:blur-[100px]"></div>
       </div>
 
       <div className="relative w-full max-w-md perspective-1000">
@@ -95,7 +94,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
 
               <button
                 onClick={handleContinue}
-                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#2A3F41] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
+                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] md:hover:bg-[#2A3F41] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 touch-manipulation"
               >
                 Entrar
                 <IconCheck className="w-4 h-4" />
@@ -103,7 +102,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
               
               <button 
                 onClick={handleReset}
-                className="text-[#B07D62] text-[10px] font-black uppercase tracking-widest hover:underline mt-4"
+                className="text-[#B07D62] text-[10px] font-black uppercase tracking-widest hover:underline mt-4 p-2"
               >
                 Não sou {savedName.split(' ')[0]}
               </button>
@@ -120,7 +119,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
                     if (error) setError('');
                   }}
                   placeholder=" "
-                  className={`peer w-full px-4 py-4 bg-transparent border-b-2 text-[#354F52] font-serif text-2xl text-center focus:outline-none transition-colors placeholder-transparent ${error ? 'border-rose-300' : 'border-[#52796F]/20 focus:border-[#B07D62]'}`}
+                  /* text-base prevents auto-zoom on iOS */
+                  className={`peer w-full px-4 py-4 bg-transparent border-b-2 text-[#354F52] font-serif text-2xl md:text-2xl text-center focus:outline-none transition-colors placeholder-transparent ${error ? 'border-rose-300' : 'border-[#52796F]/20 focus:border-[#B07D62]'}`}
                 />
                 <label className="absolute left-0 right-0 top-4 text-[#52796F]/40 text-sm font-medium uppercase tracking-widest pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-[10px] peer-focus:text-[#B07D62] peer-valid:-top-4 peer-valid:text-[10px] peer-valid:text-[#B07D62]">
                   Seu Nome e Sobrenome
@@ -136,7 +136,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
               <button
                 type="submit"
                 disabled={!name.trim()}
-                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#2A3F41] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
+                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] md:hover:bg-[#2A3F41] active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4 touch-manipulation"
               >
                 Entrar com carinho
                 <IconArrowRight className="w-4 h-4" />

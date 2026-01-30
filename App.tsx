@@ -10,12 +10,14 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
+import { IconArrowUp } from './components/Icons'; // Importando ícone
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false); // Estado para o botão de topo
 
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
@@ -59,7 +61,7 @@ const App: React.FC = () => {
       setGifts(data);
       localStorage.setItem('housewarming_gifts', JSON.stringify(data));
     } catch (error) {
-      console.error("Erro ao sincronizar:", error);
+      console.error("Erro ao sincronizar com Sheets:", error);
     }
   };
 
@@ -71,6 +73,27 @@ const App: React.FC = () => {
     const interval = setInterval(refreshGifts, 20000); 
     return () => clearInterval(interval);
   }, []);
+
+  // Lógica de Scroll para o botão "Voltar ao Topo"
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const handleOnboarding = (name: string) => {
     localStorage.setItem('housewarming_user_name', name);
@@ -96,7 +119,7 @@ const App: React.FC = () => {
       });
       
       if (status === 'reserved') {
-        // Feedback visual sutil, sem bloquear a tela se for fluxo da Shopee
+        // Feedback visual sutil
       }
       refreshGifts();
     } catch (e) {
@@ -132,7 +155,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Novo Fluxo Shopee: Reserva Imediata
   const handleShopeeInitiate = (gift: Gift) => {
     if (!user) return;
     
@@ -141,9 +163,7 @@ const App: React.FC = () => {
       'Confirmar Escolha',
       `Ao clicar em confirmar, vamos marcar "${gift.name}" como seu presente na lista e abrir a loja para você.`,
       () => {
-        // Reserva IMEDIATAMENTE antes de sair
         updateGiftStatus(gift.id, 'reserved', user.name);
-        // Abre a loja
         window.open(gift.shopeeUrl, '_blank');
       },
       () => {}
@@ -155,7 +175,7 @@ const App: React.FC = () => {
   const userReservedGifts = gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
 
   return (
-    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] overflow-x-hidden pb-10">
+    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] overflow-x-hidden pb-24 md:pb-10">
       <CustomAlert {...alertConfig} />
       
       {loading && (
@@ -163,6 +183,22 @@ const App: React.FC = () => {
           <div className="h-full bg-green-300 animate-[loading_1.5s_infinite_linear] w-[40%]"></div>
         </div>
       )}
+
+      {/* Botão Voltar ao Topo */}
+      <button
+        onClick={scrollToTop}
+        className={`
+          fixed z-[80] right-4 md:right-8 bg-[#354F52] text-white p-3 md:p-4 rounded-full shadow-xl 
+          transition-all duration-500 hover:bg-[#2A3F41] active:scale-95 border border-white/10
+          flex items-center justify-center
+          ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
+          /* Posicionamento Mobile vs Desktop */
+          bottom-20 md:bottom-8
+        `}
+        aria-label="Voltar ao topo"
+      >
+        <IconArrowUp className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
 
       <Cart 
         user={user} 

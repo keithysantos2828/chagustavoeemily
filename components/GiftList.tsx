@@ -21,14 +21,6 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
     }
   }, [src]);
 
-  const handleImageLoad = () => {
-    setImageStatus('loaded');
-  };
-
-  const handleImageError = () => {
-    setImageStatus('error');
-  };
-
   return (
     <div className="relative aspect-square overflow-hidden bg-[#F8F7F2]">
       {imageStatus === 'loading' && (
@@ -52,11 +44,12 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
         <img 
           src={src} 
           alt={alt} 
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          className={`w-full h-full object-cover transition-all duration-700 ${
-            imageStatus === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
-          } ${isReserved ? 'grayscale opacity-60' : 'group-hover:scale-110'}`} 
+          onLoad={() => setImageStatus('loaded')}
+          onError={() => setImageStatus('error')}
+          className={`w-full h-full object-cover transition-all duration-700 ease-out 
+            ${imageStatus === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'} 
+            ${isReserved ? 'grayscale opacity-60' : 'md:group-hover:scale-110'} 
+          `} 
         />
       )}
       
@@ -126,13 +119,14 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
   };
 
   return (
-    <div className="space-y-10">
-      {/* Sticky Filters Area */}
-      <div className="sticky top-0 z-40 py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-md transition-all shadow-sm">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+    <div className="space-y-6 md:space-y-10">
+      {/* Sticky Filters Area - Mobile Optimized (Horizontal Scroll) vs Desktop (Clean Bar) */}
+      <div className="sticky top-0 z-40 py-2 md:py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
+        <div className="flex flex-col gap-3 md:gap-4 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             
-            <div className="relative w-full md:w-64 group">
+            {/* Search Bar - Full width on mobile, Auto on desktop */}
+            <div className="relative w-full md:w-80 group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
               </div>
@@ -141,47 +135,50 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar presente..."
-                className="w-full pl-10 pr-4 py-3 bg-white rounded-full shadow-sm border border-[#52796F]/10 text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl md:rounded-full shadow-sm border border-[#52796F]/10 text-[13px] md:text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
               />
             </div>
 
-            <div className="bg-white p-1.5 rounded-full shadow-sm border border-[#52796F]/10 inline-flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    setActiveTab(cat);
-                    setSearchTerm('');
-                  }}
-                  className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                    activeTab === cat && !searchTerm 
-                      ? 'bg-[#354F52] text-white shadow-md' 
-                      : 'text-[#52796F] hover:bg-[#52796F]/5'
+            {/* Categories - Snap Scroll on Mobile, Flex Wrap on Desktop */}
+            <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="flex md:flex-wrap gap-2 md:gap-2 min-w-max">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setActiveTab(cat);
+                      setSearchTerm('');
+                    }}
+                    className={`whitespace-nowrap px-5 py-2.5 md:py-2 rounded-xl md:rounded-full text-[11px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 md:active:scale-100 ${
+                      activeTab === cat && !searchTerm 
+                        ? 'bg-[#354F52] text-white shadow-md transform scale-105 md:scale-100' 
+                        : 'bg-white md:bg-transparent border border-[#52796F]/5 md:border-transparent text-[#52796F] hover:bg-[#52796F]/5'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-center w-full md:w-auto">
+                 <button 
+                  onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                  className={`flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2.5 md:py-1.5 rounded-xl md:rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95 md:active:scale-100 ${
+                    showAvailableOnly 
+                      ? 'bg-[#B07D62] text-white border-[#B07D62]' 
+                      : 'bg-white md:bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
                   }`}
                 >
-                  {cat}
+                  {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
+                  {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
                 </button>
-              ))}
             </div>
-          </div>
-          
-          <div className="flex justify-center">
-               <button 
-                onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                  showAvailableOnly 
-                    ? 'bg-[#B07D62] text-white border-[#B07D62]' 
-                    : 'bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
-                }`}
-              >
-                {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
-                {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
-              </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-2 md:px-0">
         {filteredGifts.map((gift) => {
           const isReserved = gift.status === 'reserved';
           const hasLink = !!gift.shopeeUrl;
@@ -189,61 +186,73 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, on
           return (
             <div 
               key={gift.id}
-              className={`group bg-white rounded-3xl overflow-hidden shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-[#52796F]/5 transition-all duration-500 relative flex flex-col ${
-                isReserved 
-                  ? 'opacity-70 grayscale-[0.3]' 
-                  : 'hover:shadow-[0_20px_40px_-10px_rgba(82,121,111,0.15)] hover:-translate-y-2'
-              }`}
+              className={`
+                group bg-white rounded-3xl overflow-hidden shadow-sm border border-[#52796F]/5 
+                relative flex flex-col
+                /* Mobile: No hover effects, solid touch feel */
+                active:scale-[0.98] transition-transform duration-100 md:active:scale-100
+                /* Desktop: Elegant lift and shadow */
+                md:hover:shadow-2xl md:hover:-translate-y-2 md:transition-all md:duration-500
+                ${isReserved ? 'opacity-70 grayscale-[0.3]' : ''}
+              `}
             >
               <GiftImage src={gift.imageUrl} alt={gift.name} isReserved={isReserved} />
               
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-[#354F52] shadow-sm border border-white/50 z-10">
+              {/* Price Badge */}
+              <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold text-[#354F52] shadow-sm border border-white/50 z-10">
                 R$ {gift.priceEstimate?.toFixed(2)}
               </div>
 
-              <div className="p-5 flex flex-col flex-grow bg-white relative z-20">
+              <div className="p-4 md:p-5 flex flex-col flex-grow bg-white relative z-20">
                 <div className="flex-grow mb-4">
-                  <p className="text-[10px] text-[#B07D62] font-black uppercase tracking-widest mb-1">{gift.category}</p>
-                  <h3 className="text-lg font-serif font-medium text-[#354F52] leading-tight mb-2">
+                  <p className="text-[9px] md:text-[10px] text-[#B07D62] font-black uppercase tracking-widest mb-1">{gift.category}</p>
+                  <h3 className="text-base md:text-lg font-serif font-medium text-[#354F52] leading-tight mb-2">
                     {gift.name}
                   </h3>
                 </div>
                 
                 {!isReserved ? (
-                  <div className="space-y-2.5">
-                    {hasLink && (
-                      <button 
-                        onClick={() => onShopeeClick(gift)}
-                        aria-label={`Comprar ${gift.name} na Shopee`}
-                        className="w-full bg-[#B07D62] text-white py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 hover:bg-[#966b54] active:scale-95 transition-all flex items-center justify-center gap-2 group/btn"
-                      >
-                        <IconShoppingCart className="w-4 h-4" />
-                        Comprar na Shopee
-                      </button>
-                    )}
+                  <div className="space-y-2 md:space-y-2.5">
+                    {/* 
+                      Mobile Strategy: Buttons always visible and touch-friendly.
+                      Desktop Strategy: Buttons appear on hover (Reveal effect) for cleanliness.
+                    */}
+                    <div className={`
+                      flex flex-col gap-2 
+                      md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 md:transition-all md:duration-500 md:ease-out
+                    `}>
+                      {hasLink && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); onShopeeClick(gift); }}
+                          className="w-full bg-[#B07D62] text-white py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 active:scale-95 hover:bg-[#966b54] transition-all flex items-center justify-center gap-2"
+                        >
+                          <IconShoppingCart className="w-4 h-4" />
+                          Comprar na Shopee
+                        </button>
+                      )}
 
-                    <button 
-                      onClick={() => onReserve(gift)}
-                      aria-label={`Vou presentear ${gift.name} por fora`}
-                      className={`w-full py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
-                        hasLink 
-                          ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
-                          : 'bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg'
-                      }`}
-                    >
-                      <IconGift className="w-4 h-4" />
-                      {hasLink ? 'Presentear por fora' : 'Quero Presentear'}
-                    </button>
-
-                    {hasLink && (
                       <button 
-                        onClick={() => handleJustBrowse(gift)}
-                        className="w-full py-1 text-[9px] font-bold uppercase tracking-widest text-[#52796F] hover:text-[#354F52] hover:underline opacity-80 hover:opacity-100 transition-all flex items-center justify-center gap-1 mt-1"
+                        onClick={(e) => { e.stopPropagation(); onReserve(gift); }}
+                        className={`w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                          hasLink 
+                            ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
+                            : 'bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg'
+                        }`}
                       >
-                        <IconEye className="w-3 h-3" />
-                        Apenas ver na Shopee (sem reservar)
+                        <IconGift className="w-4 h-4" />
+                        {hasLink ? 'Presentear por fora' : 'Quero Presentear'}
                       </button>
-                    )}
+
+                      {hasLink && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleJustBrowse(gift); }}
+                          className="w-full py-2 text-[10px] md:text-[9px] font-bold uppercase tracking-widest text-[#52796F] hover:text-[#354F52] hover:underline opacity-80 hover:opacity-100 transition-all flex items-center justify-center gap-1"
+                        >
+                          <IconEye className="w-3 h-3" />
+                          Apenas ver (sem reservar)
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                    <div className="mt-4 pt-4 border-t border-dashed border-stone-200 text-center">
