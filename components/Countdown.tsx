@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconHeart, IconSparkles } from './Icons';
+import { IconHeart, IconSparkles, IconCheck } from './Icons';
 
 interface CountdownProps {
   targetDate: Date;
@@ -8,7 +8,7 @@ interface CountdownProps {
 type TimeMode = 'FUTURE' | 'TODAY' | 'PAST';
 
 const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
-  const [timeLeft, setTimeLeft] = useState<any>({});
+  const [timeLeft, setTimeLeft] = useState<{ dias: number; horas: number; minutos: number; segundos: number } | null>(null);
   const [mode, setMode] = useState<TimeMode>('FUTURE');
   const [heroMessage, setHeroMessage] = useState('');
   const [subMessage, setSubMessage] = useState('');
@@ -19,108 +19,112 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     const diff = target.getTime() - now.getTime();
     
     // Define o modo baseado na diferença
-    // Consideramos "Hoje" um período de 24h após a data exata
     const oneDay = 1000 * 60 * 60 * 24;
     
-    let currentMode: TimeMode = 'FUTURE';
-    let calculatedDiff = diff;
-
     if (diff <= 0) {
       const timeSince = Math.abs(diff);
       if (timeSince < oneDay) {
-        currentMode = 'TODAY';
-        calculatedDiff = 0; // Para travar o contador visualmente se quiser, ou mostrar 0
+        return { mode: 'TODAY' as TimeMode, time: { dias: 0, horas: 0, minutos: 0, segundos: 0 } };
       } else {
-        currentMode = 'PAST';
-        calculatedDiff = timeSince; // Passamos a usar o tempo decorrido
+        // Para o passado, calculamos o tempo decorrido
+        const d = Math.floor(timeSince / (1000 * 60 * 60 * 24));
+        return { mode: 'PAST' as TimeMode, time: { dias: d, horas: 0, minutos: 0, segundos: 0 } };
       }
-    } else {
-      currentMode = 'FUTURE';
     }
 
-    setMode(currentMode);
-
-    // Cálculos de Tempo
-    const time = {
-      dias: Math.floor(calculatedDiff / (1000 * 60 * 60 * 24)),
-      horas: Math.floor((calculatedDiff / (1000 * 60 * 60)) % 24),
-      minutos: Math.floor((calculatedDiff / 1000 / 60) % 60),
-      segundos: Math.floor((calculatedDiff / 1000) % 60),
+    // Futuro
+    return {
+      mode: 'FUTURE' as TimeMode,
+      time: {
+        dias: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        horas: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutos: Math.floor((diff / 1000 / 60) % 60),
+        segundos: Math.floor((diff / 1000) % 60),
+      }
     };
-
-    return time;
   };
 
   useEffect(() => {
-    // Check inicial e Loop
     const update = () => {
-      const time = calculateTime();
+      const { mode: newMode, time } = calculateTime();
       setTimeLeft(time);
-      updateMessages(time, mode);
+      setMode(newMode);
+      updateMessages(time, newMode);
     };
 
-    update(); // Run once immediately
+    update();
     const timer = setInterval(update, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate, mode]);
+  }, [targetDate]);
 
   const updateMessages = (time: any, currentMode: TimeMode) => {
     if (currentMode === 'FUTURE') {
       if (time.dias > 1) {
         setHeroMessage("Faltam apenas...");
-        // Texto ajustado para ser menos "casamento"
         setSubMessage("Para o nosso Chá de Casa Nova");
       } else if (time.dias === 1) {
         setHeroMessage("É Amanhã! 😱❤️");
         setSubMessage("Segura a ansiedade!");
       } else {
-        // Menos de 1 dia, mas ainda positivo (horas finais)
-        setHeroMessage("É Amanhã! 😱❤️");
-        setSubMessage("Estamos na contagem regressiva final!");
+        // Menos de 1 dia (horas finais)
+        setHeroMessage("É hoje, está quase! ⏳");
+        setSubMessage("Estamos contando os minutos!");
       }
     } else if (currentMode === 'TODAY') {
-      setHeroMessage("É Hoje! ✨🎉");
-      setSubMessage("O grande dia chegou, obrigado por fazerem parte disso!");
+      setHeroMessage("O Momento Chegou! ✨🎉");
+      setSubMessage("Estamos esperando por vocês!");
     } else if (currentMode === 'PAST') {
       setHeroMessage("Nossa nova fase começou! 🏡");
       setSubMessage("Obrigado por ajudarem a construir esse cantinho.");
     }
   };
-
-  // Se for passado, mostramos o contador de "Dias de Casa Nova"
-  // Se for futuro, mostramos contagem regressiva
-  // Se for hoje, mostramos mensagem de celebração
   
-  const renderCounterItem = (value: number, label: string) => (
-    <div className="flex flex-col items-center flex-1 min-w-[80px] max-w-[120px] md:max-w-[140px]">
-      <div className={`w-full backdrop-blur-md border rounded-2xl md:rounded-[2rem] py-4 md:py-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center group transform transition-all duration-500 hover:-translate-y-1 hover:shadow-lg ${
-        mode === 'PAST' 
+  const renderCounterItem = (value: number, label: string, isUrgent: boolean = false) => (
+    <div className="flex flex-col items-center flex-1 min-w-[70px] max-w-[110px] md:max-w-[130px] animate-in zoom-in-50 duration-500">
+      <div className={`
+        w-full backdrop-blur-md border rounded-2xl md:rounded-[2rem] py-3 md:py-5 
+        shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center 
+        group transition-all duration-300 relative overflow-hidden
+        ${mode === 'PAST' 
           ? 'bg-white/90 border-[#B07D62]/20' 
-          : 'bg-white/80 border-[#52796F]/10'
-      }`}>
-        <span className={`text-4xl sm:text-5xl md:text-6xl font-bold leading-none mb-1 md:mb-2 tabular-nums tracking-tighter ${
-          mode === 'PAST' ? 'text-[#B07D62]' : 'text-[#354F52]'
-        }`}>
+          : isUrgent 
+            ? 'bg-[#B07D62] border-[#B07D62] text-white shadow-[#B07D62]/30 shadow-lg scale-105' 
+            : 'bg-white/80 border-[#52796F]/10 text-[#354F52] hover:-translate-y-1 hover:shadow-lg'
+        }
+      `}>
+        {/* Efeito de brilho se for urgente */}
+        {isUrgent && <div className="absolute inset-0 bg-white/10 animate-pulse"></div>}
+
+        <span className={`
+          text-3xl sm:text-4xl md:text-5xl font-bold leading-none mb-1 md:mb-2 tabular-nums tracking-tighter
+          ${mode === 'PAST' ? 'text-[#B07D62]' : isUrgent ? 'text-white' : 'text-[#354F52]'}
+        `}>
           {(value || 0).toString().padStart(2, '0')}
         </span>
-        <span className={`text-[9px] sm:text-[10px] md:text-xs uppercase tracking-[0.2em] font-black opacity-80 group-hover:opacity-100 transition-opacity ${
-          mode === 'PAST' ? 'text-[#354F52]' : 'text-[#B07D62]'
-        }`}>
+        <span className={`
+          text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black transition-opacity
+          ${mode === 'PAST' ? 'text-[#354F52]' : isUrgent ? 'text-white/80' : 'text-[#B07D62] opacity-80 group-hover:opacity-100'}
+        `}>
           {label}
         </span>
       </div>
     </div>
   );
 
+  if (!timeLeft) return null; // Evita renderizar 00:00:00 antes do cálculo inicial
+
+  // Lógica de Urgência: Se faltar menos de 1 dia, ativamos o modo urgente visual
+  const isUrgentMode = timeLeft.dias === 0 && mode === 'FUTURE';
+
   return (
-    <div className="flex flex-col items-center justify-center space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-1000 py-6">
+    <div className="flex flex-col items-center justify-center space-y-6 md:space-y-8 py-6">
       
-      {/* Mensagem Dinâmica (Título) */}
+      {/* Título Dinâmico */}
       <div className="text-center px-4">
-        <h2 className={`font-cursive leading-none transition-all duration-500 flex items-center justify-center gap-3 ${
+        <h2 className={`font-cursive leading-none transition-all duration-500 flex items-center justify-center gap-3 text-center ${
            mode === 'TODAY' 
-             ? 'text-5xl md:text-7xl text-[#B07D62] animate-pulse drop-shadow-md' 
+             ? 'text-4xl md:text-6xl text-[#B07D62] animate-pulse drop-shadow-md' 
              : 'text-3xl md:text-5xl text-[#52796F]'
         }`}>
           {mode === 'PAST' && <IconHeart className="w-8 h-8 md:w-10 md:h-10 text-[#B07D62]" />}
@@ -130,35 +134,45 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       </div>
 
       {mode === 'TODAY' ? (
-        <div className="bg-white/60 backdrop-blur-sm px-8 py-6 rounded-[2rem] border border-[#B07D62]/20 shadow-xl animate-bounce-slow">
-           <p className="text-xl md:text-2xl font-serif italic text-[#354F52] text-center">
-             "Sejam bem-vindos ao nosso começo!"
+        <div className="bg-white/60 backdrop-blur-sm px-8 py-6 rounded-[2rem] border border-[#B07D62]/20 shadow-xl animate-bounce-slow max-w-lg text-center mx-4">
+           <div className="w-16 h-16 bg-[#B07D62] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+             <IconCheck className="w-8 h-8 text-white" />
+           </div>
+           <p className="text-lg md:text-xl font-serif italic text-[#354F52]">
+             "A casa é nossa, mas a alegria só é completa com vocês!"
            </p>
         </div>
       ) : (
-        <div className="flex justify-center items-center gap-3 sm:gap-4 md:gap-6 max-w-4xl mx-auto px-2 w-full flex-wrap">
-          {/* Lógica Inteligente de Exibição */}
+        <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4 max-w-4xl mx-auto px-2 w-full flex-wrap">
           
-          {/* Se for passado, mostra DIAS como destaque principal "Dias de casados/casa nova" */}
+          {/* Lógica "Viva" de Exibição: Removemos unidades zeradas à esquerda */}
+          
           {mode === 'PAST' && (
              <div className="flex flex-col items-center gap-2">
                 {renderCounterItem(timeLeft.dias, 'Dias de Casa Nova')}
              </div>
           )}
 
-          {/* Se for futuro, lógica padrão de esconder zeros à esquerda */}
           {mode === 'FUTURE' && (
             <>
-              {timeLeft.dias > 0 && renderCounterItem(timeLeft.dias, 'Dias')}
-              {(timeLeft.dias > 0 || timeLeft.horas > 0) && renderCounterItem(timeLeft.horas, 'Horas')}
-              {(timeLeft.dias > 0 || timeLeft.horas > 0 || timeLeft.minutos > 0) && renderCounterItem(timeLeft.minutos, 'Minutos')}
-              {renderCounterItem(timeLeft.segundos, 'Segundos')}
+              {timeLeft.dias > 0 && renderCounterItem(timeLeft.dias, timeLeft.dias === 1 ? 'Dia' : 'Dias')}
+              
+              {/* Se Dias > 0, mostramos Horas normais. Se Dias == 0, Horas vira o destaque (Urgente) */}
+              {(timeLeft.dias > 0 || timeLeft.horas > 0) && 
+                renderCounterItem(timeLeft.horas, timeLeft.dias === 0 ? 'Horas Restantes' : 'Horas', isUrgentMode)}
+              
+              {/* Minutos sempre aparecem, a menos que estejamos nos últimos segundos */}
+              {(timeLeft.dias > 0 || timeLeft.horas > 0 || timeLeft.minutos > 0) && 
+                renderCounterItem(timeLeft.minutos, 'Minutos', isUrgentMode && timeLeft.horas === 0)}
+              
+              {/* Segundos sempre aparecem para dar vida e movimento */}
+              {renderCounterItem(timeLeft.segundos, 'Segundos', isUrgentMode && timeLeft.horas === 0 && timeLeft.minutos === 0)}
             </>
           )}
         </div>
       )}
 
-      {/* Submensagem agora abaixo dos números */}
+      {/* Submensagem */}
       <div className="text-center px-4">
         <p className={`text-[10px] md:text-xs font-black uppercase tracking-[0.3em] animate-in slide-in-from-bottom-2 ${
            mode === 'PAST' ? 'text-[#B07D62]' : 'text-[#84A98C]'
@@ -166,15 +180,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
           {subMessage}
         </p>
       </div>
-
-      {mode === 'PAST' && (
-        <div className="inline-flex items-center gap-2 bg-[#B07D62]/10 px-6 py-2 rounded-full border border-[#B07D62]/20">
-          <IconSparkles className="w-4 h-4 text-[#B07D62]" />
-          <span className="text-[10px] font-bold text-[#B07D62] uppercase tracking-widest">
-            Lista de presentes encerrada
-          </span>
-        </div>
-      )}
     </div>
   );
 };
