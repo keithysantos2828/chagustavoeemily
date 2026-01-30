@@ -313,7 +313,7 @@ const App: React.FC = () => {
           <Countdown targetDate={EVENT_DATE} />
         </div>
 
-        <PresenceList gifts={gifts} />
+        <PresenceList gifts={gifts} currentUser={user} />
 
         <main className="mt-12 md:mt-24 relative">
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">

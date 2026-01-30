@@ -1,12 +1,13 @@
 import React from 'react';
-import { Gift } from '../types';
-import { IconGift, IconHeart, IconSparkles, IconUser } from './Icons';
+import { Gift, User } from '../types';
+import { IconGift, IconHeart, IconSparkles, IconUser, IconCheck } from './Icons';
 
 interface PresenceListProps {
   gifts: Gift[];
+  currentUser?: User | null;
 }
 
-const PresenceList: React.FC<PresenceListProps> = ({ gifts }) => {
+const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
   // Extrai nomes únicos de quem reservou
   const giverNames = Array.from(new Set(
     gifts
@@ -16,8 +17,13 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts }) => {
 
   const confirmedCount = gifts.filter(g => g.status === 'reserved').length;
   const uniqueGivers = giverNames.length;
+  
+  // Verifica se eu já estou na lista
+  const amIInList = currentUser && giverNames.includes(currentUser.name);
 
-  if (confirmedCount === 0) return null;
+  // Se a lista estiver vazia E o usuário ainda não contribuiu, não mostra nada (para não ficar estranho)
+  // Mas se já tiver gente, ou se o usuário quiser ver onde ele vai entrar, mostramos.
+  if (confirmedCount === 0 && !currentUser) return null;
 
   return (
     <div className="bg-white/60 backdrop-blur-md border border-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 mb-10 md:mb-20 shadow-xl shadow-stone-200/50 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -51,26 +57,53 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts }) => {
       
       {/* Lista de Nomes (Chips) */}
       <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
-        {giverNames.map((name, index) => (
-          <div 
-            key={index} 
-            className="group flex items-center gap-2 pl-1 pr-3 py-1 bg-white border border-[#52796F]/10 rounded-full shadow-sm hover:shadow-md hover:border-[#B07D62]/30 transition-all cursor-default"
-          >
-            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-[#52796F] to-[#354F52] text-white flex items-center justify-center text-[10px] md:text-xs font-bold uppercase shadow-inner">
-              {name.charAt(0)}
+        {giverNames.map((name, index) => {
+          const isMe = currentUser && name === currentUser.name;
+          
+          return (
+            <div 
+              key={index} 
+              className={`
+                group flex items-center gap-2 pl-1 pr-3 py-1 rounded-full shadow-sm transition-all cursor-default
+                ${isMe 
+                  ? 'bg-[#FDFCF8] border-2 border-[#B07D62] scale-105 shadow-md z-10' 
+                  : 'bg-white border border-[#52796F]/10 hover:shadow-md hover:border-[#B07D62]/30'
+                }
+              `}
+            >
+              <div className={`
+                w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[10px] md:text-xs font-bold uppercase shadow-inner
+                ${isMe ? 'bg-[#B07D62] text-white' : 'bg-gradient-to-br from-[#52796F] to-[#354F52] text-white'}
+              `}>
+                {isMe ? <IconCheck className="w-3 h-3 md:w-4 md:h-4" /> : name.charAt(0)}
+              </div>
+              <span className={`text-[11px] md:text-sm font-medium capitalize ${isMe ? 'text-[#B07D62] font-bold' : 'text-[#354F52]'}`}>
+                {name.split(' ')[0]} {isMe && '(Você)'}
+              </span>
             </div>
-            <span className="text-[11px] md:text-sm font-medium text-[#354F52] capitalize">
-              {name.split(' ')[0]}
+          );
+        })}
+
+        {/* Slot Vazio - Convite para o usuário se ele ainda não estiver na lista */}
+        {!amIInList && currentUser && (
+          <div className="animate-pulse flex items-center gap-2 pl-1 pr-3 py-1 border-2 border-dashed border-[#B07D62]/30 bg-[#B07D62]/5 rounded-full cursor-default opacity-80 hover:opacity-100 transition-opacity">
+            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#B07D62]/10 flex items-center justify-center text-[#B07D62]">
+               <IconUser className="w-3 h-3 md:w-4 md:h-4" />
+            </div>
+            <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-[#B07D62]">
+              Só falta você!
             </span>
           </div>
-        ))}
+        )}
       </div>
 
       <div className="mt-8 text-center md:text-left pt-6 border-t border-dashed border-[#52796F]/10">
         <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-100 px-4 py-2 rounded-full">
            <IconSparkles className="w-4 h-4 text-amber-400" />
            <p className="text-[10px] text-amber-700 font-bold uppercase tracking-widest">
-             Vocês são incríveis! Obrigado por tanto carinho.
+             {amIInList 
+               ? "Obrigado por fazer parte desse sonho com a gente! ❤️" 
+               : "Vocês são incríveis! Obrigado por tanto carinho."}
            </p>
         </div>
       </div>
