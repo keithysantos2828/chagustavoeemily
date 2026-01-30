@@ -6,24 +6,7 @@ interface FooterProps {
   onShowAlert?: (type: AlertType, title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onShowAlert }) => {
-  
-  const handleBBQConfirm = () => {
-    if (onShowAlert) {
-      onShowAlert(
-        'confirm',
-        'Confirmar Churrasco?',
-        'Ao confirmar, abriremos o WhatsApp para você enviar uma mensagem avisando a Emily e o Gustavo que você chegará às 13h! 🍖',
-        () => {
-          // Link genérico para WhatsApp - o usuário pode selecionar o contato
-          const text = encodeURIComponent("Oie! Confirmando minha presença no Churrasco às 13h! 🍖😋");
-          window.open(`https://wa.me/?text=${text}`, '_blank');
-        },
-        () => {}
-      );
-    }
-  };
-
+const Footer: React.FC<FooterProps> = () => {
   return (
     <footer className="mt-20 md:mt-40 pt-12 md:pt-24 border-t border-[#84A98C]/10 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-24 items-center">
@@ -61,23 +44,6 @@ const Footer: React.FC<FooterProps> = ({ onShowAlert }) => {
                   <span className="text-[#B07D62] font-bold">Chá de Casa Nova: Às 15:00h</span>
                 </p>
               </div>
-            </div>
-
-            {/* Bloco Churrasco Opcional - Destaque */}
-            <div className="mt-8 bg-[#B07D62]/10 border border-[#B07D62]/20 rounded-[2rem] p-6 md:p-8 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-16 h-16 bg-[#B07D62]/10 rounded-bl-[2rem] flex items-center justify-center text-xl">🍖</div>
-               
-               <h3 className="text-[#B07D62] font-black uppercase tracking-widest text-xs mb-2">Churrasco Opcional</h3>
-               <p className="text-[#354F52] font-serif text-lg md:text-xl italic mb-4">
-                 Vai rolar um churrasquinho colaborativo antes do chá, às <strong className="font-sans not-italic text-[#B07D62]">13:00h</strong>! Se quiser participar, confirme abaixo para nos organizarmos.
-               </p>
-               
-               <button 
-                 onClick={handleBBQConfirm}
-                 className="w-full py-4 bg-[#B07D62] text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#966b54] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-               >
-                 Confirmar Presença no Churrasco
-               </button>
             </div>
           </div>
         </div>

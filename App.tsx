@@ -59,7 +59,7 @@ const App: React.FC = () => {
       setGifts(data);
       localStorage.setItem('housewarming_gifts', JSON.stringify(data));
     } catch (error) {
-      console.error("Erro ao sincronizar com Sheets:", error);
+      console.error("Erro ao sincronizar:", error);
     }
   };
 
@@ -68,11 +68,12 @@ const App: React.FC = () => {
     if (savedGifts) setGifts(JSON.parse(savedGifts));
     refreshGifts();
     
-    const interval = setInterval(refreshGifts, 20000); // Atualiza a cada 20s
+    const interval = setInterval(refreshGifts, 20000); 
     return () => clearInterval(interval);
   }, []);
 
   const handleOnboarding = (name: string) => {
+    localStorage.setItem('housewarming_user_name', name);
     const newUser: User = {
       name,
       isAdmin: name.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
@@ -90,12 +91,12 @@ const App: React.FC = () => {
     try {
       await fetch(SHEET_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Apps Script requer no-cors para POST simples ou tratamento de redirecionamento
+        mode: 'no-cors',
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
       
       if (status === 'reserved') {
-        showAlert('success', 'Presente Reservado!', 'Obrigado por confirmar! O item foi marcado com seu nome.', () => {});
+        // Feedback visual sutil, sem bloquear a tela se for fluxo da Shopee
       }
       refreshGifts();
     } catch (e) {
@@ -123,12 +124,30 @@ const App: React.FC = () => {
           urls: finalGift.shopeeUrl
         })
       });
-      setTimeout(refreshGifts, 1000); // Aguarda o Google processar
+      setTimeout(refreshGifts, 1000);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Novo Fluxo Shopee: Reserva Imediata
+  const handleShopeeInitiate = (gift: Gift) => {
+    if (!user) return;
+    
+    showAlert(
+      'confirm',
+      'Confirmar Escolha',
+      `Ao clicar em confirmar, vamos marcar "${gift.name}" como seu presente na lista e abrir a loja para você.`,
+      () => {
+        // Reserva IMEDIATAMENTE antes de sair
+        updateGiftStatus(gift.id, 'reserved', user.name);
+        // Abre a loja
+        window.open(gift.shopeeUrl, '_blank');
+      },
+      () => {}
+    );
   };
 
   if (!user) return <Onboarding onSubmit={handleOnboarding} />;
@@ -172,8 +191,8 @@ const App: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
             <div className="text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
-              <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest mt-2">
-                Conectado à planilha oficial • Emily & Gustavo
+              <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest mt-2 opacity-60">
+                Atualizada em tempo real
               </p>
             </div>
             
@@ -183,7 +202,7 @@ const App: React.FC = () => {
                   onClick={() => setShowAdmin(!showAdmin)}
                   className="w-full md:w-auto px-6 py-3 bg-[#52796F] text-white rounded-full hover:bg-[#354F52] transition-all shadow-xl font-bold uppercase tracking-widest text-[10px]"
                 >
-                  {showAdmin ? 'Fechar Painel ADM' : 'Painel da Emily'}
+                  {showAdmin ? 'Fechar Painel' : 'Painel da Emily'}
                 </button>
               )}
             </div>
@@ -198,7 +217,16 @@ const App: React.FC = () => {
           ) : (
             <GiftList 
               gifts={gifts} 
-              onReserve={(id) => updateGiftStatus(id, 'reserved', user.name)} 
+              onReserve={(gift) => {
+                showAlert(
+                    'confirm',
+                    'Reservar Presente?',
+                    'Você confirma que vai presentear com este item (comprando em outra loja física ou online)?',
+                    () => updateGiftStatus(gift.id, 'reserved', user.name),
+                    () => {}
+                );
+              }} 
+              onShopeeClick={handleShopeeInitiate}
             />
           )}
         </main>

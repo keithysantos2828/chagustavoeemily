@@ -5,11 +5,11 @@ import { IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconArrowRi
 interface GiftListProps {
   gifts: Gift[];
   onReserve: (gift: Gift) => void;
-  onLinkReturn: (gift: Gift) => void;
+  onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
 }
 
-// Componente interno para gerenciar o carregamento individual de cada imagem (Com cores Boho)
+// Componente interno para gerenciar o carregamento individual de cada imagem
 const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = ({ src, alt, isReserved }) => {
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
@@ -26,7 +26,6 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
   };
 
   const handleImageError = () => {
-    console.warn(`[GiftImage Error] Falha ao carregar imagem para: "${alt}". URL Tentada: "${src}"`);
     setImageStatus('error');
   };
 
@@ -38,7 +37,6 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
         </div>
       )}
 
-      {/* Fallback com cores da paleta original */}
       {imageStatus === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F8F7F2] p-4 text-center animate-in fade-in duration-500">
            <div className="w-12 h-12 rounded-full bg-[#52796F]/10 flex items-center justify-center mb-2">
@@ -58,12 +56,12 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean }> = (
           onError={handleImageError}
           className={`w-full h-full object-cover transition-all duration-700 ${
             imageStatus === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
-          } ${isReserved ? 'grayscale' : 'group-hover:scale-110'}`} 
+          } ${isReserved ? 'grayscale opacity-60' : 'group-hover:scale-110'}`} 
         />
       )}
       
       {isReserved && (
-        <div className="absolute inset-0 bg-[#354F52]/40 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-500 z-20">
+        <div className="absolute inset-0 bg-[#354F52]/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-500 z-20">
           <div className="bg-white text-[#354F52] px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl flex items-center gap-2">
             <IconCheck className="w-4 h-4" />
             Já Ganharam!
@@ -80,11 +78,10 @@ const IconSearch = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onLinkReturn, onCategoryChange }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onShopeeClick, onCategoryChange }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [pendingGiftId, setPendingGiftId] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(gifts.map(g => g.category)));
@@ -122,87 +119,65 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onLinkReturn, onC
     }
   }, [searchTerm]);
 
-  useEffect(() => {
-    const handleWindowFocus = () => {
-      if (pendingGiftId) {
-        const gift = gifts.find(g => g.id === pendingGiftId);
-        if (gift && gift.status === 'available') {
-          onLinkReturn(gift);
-        }
-        setPendingGiftId(null);
-      }
-    };
-    window.addEventListener('focus', handleWindowFocus);
-    return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-    };
-  }, [pendingGiftId, gifts, onLinkReturn]);
-
-  const handleBuyOnShopee = (gift: Gift) => {
-    if (gift.shopeeUrl) {
-      setPendingGiftId(gift.id);
-      window.open(gift.shopeeUrl, '_blank');
-    }
-  };
-
   const handleJustBrowse = (gift: Gift) => {
     if (gift.shopeeUrl) {
-      setPendingGiftId(null);
       window.open(gift.shopeeUrl, '_blank');
     }
   };
 
   return (
     <div className="space-y-10">
-      {/* Filters Area */}
-      <div className="sticky top-4 z-30 flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-          
-          <div className="relative w-full md:w-64 group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
+      {/* Sticky Filters Area */}
+      <div className="sticky top-0 z-40 py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-md transition-all shadow-sm">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            
+            <div className="relative w-full md:w-64 group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
+              </div>
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar presente..."
+                className="w-full pl-10 pr-4 py-3 bg-white rounded-full shadow-sm border border-[#52796F]/10 text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
+              />
             </div>
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar presente..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white/80 backdrop-blur-xl rounded-full shadow-lg border border-white/40 text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
-            />
-          </div>
 
-          <div className="bg-white/80 backdrop-blur-xl p-2 rounded-full shadow-lg border border-white/40 inline-flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => {
-                  setActiveTab(cat);
-                  setSearchTerm('');
-                }}
-                className={`whitespace-nowrap px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
-                  activeTab === cat && !searchTerm 
-                    ? 'bg-[#354F52] text-white shadow-md' 
-                    : 'text-[#52796F] hover:bg-[#52796F]/5'
+            <div className="bg-white p-1.5 rounded-full shadow-sm border border-[#52796F]/10 inline-flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveTab(cat);
+                    setSearchTerm('');
+                  }}
+                  className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                    activeTab === cat && !searchTerm 
+                      ? 'bg-[#354F52] text-white shadow-md' 
+                      : 'text-[#52796F] hover:bg-[#52796F]/5'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex justify-center">
+               <button 
+                onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                  showAvailableOnly 
+                    ? 'bg-[#B07D62] text-white border-[#B07D62]' 
+                    : 'bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
                 }`}
               >
-                {cat}
+                {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
+                {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
               </button>
-            ))}
           </div>
-        </div>
-        
-        <div className="flex justify-center">
-             <button 
-              onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                showAvailableOnly 
-                  ? 'bg-[#B07D62] text-white border-[#B07D62]' 
-                  : 'bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
-              }`}
-            >
-              {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
-              {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
-            </button>
         </div>
       </div>
 
@@ -216,7 +191,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onLinkReturn, onC
               key={gift.id}
               className={`group bg-white rounded-3xl overflow-hidden shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-[#52796F]/5 transition-all duration-500 relative flex flex-col ${
                 isReserved 
-                  ? 'opacity-80' 
+                  ? 'opacity-70 grayscale-[0.3]' 
                   : 'hover:shadow-[0_20px_40px_-10px_rgba(82,121,111,0.15)] hover:-translate-y-2'
               }`}
             >
@@ -238,7 +213,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onLinkReturn, onC
                   <div className="space-y-2.5">
                     {hasLink && (
                       <button 
-                        onClick={() => handleBuyOnShopee(gift)}
+                        onClick={() => onShopeeClick(gift)}
                         aria-label={`Comprar ${gift.name} na Shopee`}
                         className="w-full bg-[#B07D62] text-white py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 hover:bg-[#966b54] active:scale-95 transition-all flex items-center justify-center gap-2 group/btn"
                       >
@@ -274,7 +249,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, onReserve, onLinkReturn, onC
                    <div className="mt-4 pt-4 border-t border-dashed border-stone-200 text-center">
                      <p className="text-[11px] text-stone-400 font-medium italic flex items-center justify-center gap-2">
                        <IconCheck className="w-3 h-3" />
-                       Escolhido por {gift.reservedBy?.split(' ')[0]}
+                       Já Presenteado
                      </p>
                    </div>
                 )}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { IconHome, IconSparkles, IconArrowRight } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { IconHome, IconSparkles, IconArrowRight, IconUser, IconCheck } from './Icons';
 
 interface OnboardingProps {
   onSubmit: (name: string) => void;
@@ -7,14 +7,49 @@ interface OnboardingProps {
 
 const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
   const [name, setName] = useState('');
+  const [savedName, setSavedName] = useState<string | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('housewarming_user_name');
+    if (stored) setSavedName(stored);
+  }, []);
+
+  const validateAndSubmit = (nameToSubmit: string) => {
+    const trimmed = nameToSubmit.trim();
+    // Exige pelo menos um espaço (indica Nome + Sobrenome)
+    if (trimmed.split(' ').length < 2 && trimmed.toLowerCase() !== 'emily thalia') {
+      setError('Por favor, digite seu Nome e Sobrenome para identificarmos você na lista. 😊');
+      return;
+    }
+    triggerEnter(trimmed);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (name.trim()) {
-      setIsOpening(true);
-      setTimeout(() => onSubmit(name.trim()), 800);
+      validateAndSubmit(name);
     }
+  };
+
+  const handleContinue = () => {
+    if (savedName) {
+      triggerEnter(savedName);
+    }
+  };
+
+  const handleReset = () => {
+    setSavedName(null);
+    localStorage.removeItem('housewarming_user_name');
+    setName('');
+    setError('');
+  };
+
+  const triggerEnter = (userName: string) => {
+    setIsOpening(true);
+    setTimeout(() => onSubmit(userName), 800);
   };
 
   return (
@@ -43,36 +78,71 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
           </div>
           
           <div className="space-y-2 mb-10">
-            <h1 className="text-5xl font-cursive text-[#354F52]">Seja bem-vindo(a)</h1>
+            <h1 className="text-4xl md:text-5xl font-cursive text-[#354F52]">Seja bem-vindo(a)</h1>
             <p className="text-[#B07D62] font-black uppercase tracking-[0.3em] text-[10px]">Ao nosso cantinho especial</p>
             <p className="text-xl font-serif italic text-[#52796F] mt-2">Emily & Gustavo</p>
           </div>
           
-          <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
-            <div className="relative group">
-              <input
-                autoFocus
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder=" "
-                className="peer w-full px-4 py-4 bg-transparent border-b-2 border-[#52796F]/20 text-[#354F52] font-serif text-2xl text-center focus:border-[#B07D62] focus:outline-none transition-colors placeholder-transparent"
-                required
-              />
-              <label className="absolute left-0 right-0 top-4 text-[#52796F]/40 text-sm font-medium uppercase tracking-widest pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-[10px] peer-focus:text-[#B07D62] peer-valid:-top-4 peer-valid:text-[10px] peer-valid:text-[#B07D62]">
-                Quem está nos visitando?
-              </label>
-            </div>
+          {savedName ? (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-[#52796F]/5 rounded-2xl p-6 border border-[#52796F]/10">
+                 <p className="text-[#84A98C] text-[10px] font-black uppercase tracking-widest mb-2">Continuar como</p>
+                 <div className="flex items-center justify-center gap-3 text-[#354F52] text-xl font-bold">
+                    <IconUser className="w-5 h-5" />
+                    {savedName}
+                 </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#2A3F41] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
-            >
-              Entrar com carinho
-              <IconArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+              <button
+                onClick={handleContinue}
+                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#2A3F41] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
+              >
+                Entrar
+                <IconCheck className="w-4 h-4" />
+              </button>
+              
+              <button 
+                onClick={handleReset}
+                className="text-[#B07D62] text-[10px] font-black uppercase tracking-widest hover:underline mt-4"
+              >
+                Não sou {savedName.split(' ')[0]}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
+              <div className="relative group">
+                <input
+                  autoFocus
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder=" "
+                  className={`peer w-full px-4 py-4 bg-transparent border-b-2 text-[#354F52] font-serif text-2xl text-center focus:outline-none transition-colors placeholder-transparent ${error ? 'border-rose-300' : 'border-[#52796F]/20 focus:border-[#B07D62]'}`}
+                />
+                <label className="absolute left-0 right-0 top-4 text-[#52796F]/40 text-sm font-medium uppercase tracking-widest pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-[10px] peer-focus:text-[#B07D62] peer-valid:-top-4 peer-valid:text-[10px] peer-valid:text-[#B07D62]">
+                  Seu Nome e Sobrenome
+                </label>
+              </div>
+
+              {error && (
+                <p className="text-rose-500 text-xs font-bold text-center animate-pulse">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!name.trim()}
+                className="w-full py-5 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-[#2A3F41] transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
+              >
+                Entrar com carinho
+                <IconArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          )}
           
           <div className="mt-8 pt-8 border-t border-[#52796F]/10">
             <p className="text-[9px] text-[#84A98C] font-black uppercase tracking-[0.2em]">
