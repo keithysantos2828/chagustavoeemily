@@ -75,7 +75,23 @@ const Footer: React.FC<FooterProps> = () => {
                  marginHeight={0} 
                  marginWidth={0} 
                  src="https://maps.google.com/maps?q=Sede+Campestre+Sintracon+Rua+Angela+Perin+Dagostin&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                 className="w-full h-full animate-in fade-in duration-700 grayscale-[10%] hover:grayscale-0 transition-all"
+                 className="
+                    w-full h-full animate-in fade-in duration-700 transition-all ease-out
+                    /* ESTILO BASE: Sálvia & Vintage */
+                    grayscale-[50%] 
+                    sepia-[40%] 
+                    hue-rotate-[100deg] 
+                    contrast-[0.9] 
+                    brightness-[1.05]
+                    invert-[5%]
+                    /* INTERAÇÃO: Revela cores reais ao passar o mouse */
+                    hover:grayscale-0 
+                    hover:sepia-0 
+                    hover:hue-rotate-0 
+                    hover:contrast-100 
+                    hover:brightness-100
+                    hover:invert-0
+                 "
                  title="Mapa do Local"
                  loading="lazy"
                ></iframe>
