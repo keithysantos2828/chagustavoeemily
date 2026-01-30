@@ -33,6 +33,9 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
     *   Implementação de 3 fluxos distintos no card do presente: "Comprar na Shopee", "Presentear por Fora" e "Apenas ver".
 - [x] **Limpeza do Backend:** (CORRIGIDO)
     *   Script `GOOGLE_SCRIPT_CODE.js` atualizado com a **lista REAL de presentes** (Cozinha, Quarto, Banheiro, etc) e a foto correta do Jogo de Panelas.
+- [x] **Admin de Luxo (Painel da Noiva):**
+    *   Redesign completo do painel administrativo.
+    *   Correção da funcionalidade de "Baixar Imagem" para Stories usando `html2canvas`.
 - [ ] **Cartão de Visita Digital (SEO & Open Graph):**
     *   Configurar meta tags para compartilhamento bonito no WhatsApp.
 
@@ -53,4 +56,4 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 *   **Fundo:** `#F8F7F2` (Sand)
 
 ---
-**Status Atual:** Backend atualizado com a lista oficial de presentes.
+**Status Atual:** Painel da Emily modernizado e funcionalidade de Stories corrigida.
