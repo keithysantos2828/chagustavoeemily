@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Gift, User } from '../types';
-import { IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSparkles } from './Icons';
+import { 
+  IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSparkles,
+  IconSortAsc, IconSortDesc, IconWallet, IconFilter
+} from './Icons';
 
 interface GiftListProps {
   gifts: Gift[];
@@ -88,6 +91,10 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  
+  // Smart Filters State - Faixas ajustadas para a realidade da lista (Max 179)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc'); // Padrão: Menor preço
+  const [priceRange, setPriceRange] = useState<'under50' | '50to100' | 'over100' | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -118,6 +125,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   const filteredGifts = useMemo(() => {
     let result = gifts;
 
+    // 1. Filtro de Texto
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(g => g.name.toLowerCase().includes(term));
@@ -127,12 +135,33 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
       }
     }
       
+    // 2. Filtro de Disponibilidade
     if (showAvailableOnly) {
       result = result.filter(g => g.status === 'available');
     }
+
+    // 3. Filtro de Preço (Smart Filter - Recalibrado)
+    if (priceRange) {
+      if (priceRange === 'under50') {
+        result = result.filter(g => (g.priceEstimate || 0) <= 50);
+      } else if (priceRange === '50to100') {
+        result = result.filter(g => (g.priceEstimate || 0) > 50 && (g.priceEstimate || 0) <= 100);
+      } else if (priceRange === 'over100') {
+        result = result.filter(g => (g.priceEstimate || 0) > 100);
+      }
+    }
+
+    // 4. Ordenação
+    if (sortOrder) {
+      result = [...result].sort((a, b) => {
+        const priceA = a.priceEstimate || 0;
+        const priceB = b.priceEstimate || 0;
+        return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
+      });
+    }
     
     return result;
-  }, [gifts, activeTab, showAvailableOnly, searchTerm]);
+  }, [gifts, activeTab, showAvailableOnly, searchTerm, priceRange, sortOrder]);
 
   useEffect(() => {
     if (onCategoryChange) {
@@ -140,6 +169,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
   }, [activeTab, onCategoryChange]);
 
+  // Se o usuário buscar algo, resetamos as abas para "Todos" para procurar globalmente
   useEffect(() => {
     if (searchTerm.trim() && activeTab !== 'Todos') {
       setActiveTab('Todos');
@@ -158,12 +188,14 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   return (
     <div className="space-y-6 md:space-y-10">
       {/* Sticky Filters Area */}
-      <div className="sticky top-0 z-50 py-2 md:py-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
-        <div className="flex flex-col gap-3 md:gap-4 max-w-6xl mx-auto">
+      <div className="sticky top-0 z-50 pt-2 pb-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
+        <div className="flex flex-col gap-3 max-w-6xl mx-auto">
+          
+          {/* Row 1: Search & Categories & Toggle (Mobile First Layout) */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             
             {/* Search Bar */}
-            <div className="relative w-full md:w-80 group">
+            <div className="relative w-full md:w-64 group order-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
               </div>
@@ -176,8 +208,8 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
               />
             </div>
 
-            {/* Categories */}
-            <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            {/* Categories (Scrollable) */}
+            <div className="w-full md:flex-1 overflow-x-auto pb-1 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 order-2">
               <div className="flex md:flex-wrap gap-2 md:gap-2 min-w-max">
                 {categories.map(cat => (
                   <button
@@ -195,10 +227,11 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
               </div>
             </div>
 
-            <div className="flex justify-center w-full md:w-auto">
+            {/* Availability Toggle */}
+            <div className="flex justify-center w-full md:w-auto order-3 md:order-3">
                  <button 
                   onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                  className={`flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2.5 md:py-1.5 rounded-xl md:rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95 md:active:scale-100 ${
+                  className={`flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2.5 md:py-2 rounded-xl md:rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95 md:active:scale-100 whitespace-nowrap ${
                     showAvailableOnly 
                       ? 'bg-[#B07D62] text-white border-[#B07D62]' 
                       : 'bg-white md:bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
@@ -208,6 +241,54 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                   {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
                 </button>
             </div>
+          </div>
+
+          {/* Row 2: Smart Filters (Price & Sort) */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0 border-t border-[#52796F]/5 pt-2">
+             <div className="flex items-center gap-2 pr-4 md:pr-0 border-r border-[#52796F]/10 md:border-none mr-2 md:mr-0 flex-shrink-0">
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#52796F]/50 hidden md:block mr-2">Ordenar:</span>
+                <button
+                  onClick={() => setSortOrder(current => current === 'asc' ? 'desc' : 'asc')}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white border border-[#52796F]/10 text-[#354F52] hover:bg-[#52796F]/5 transition-all whitespace-nowrap active:scale-95"
+                >
+                  {sortOrder === 'asc' ? <IconSortAsc className="w-3.5 h-3.5" /> : <IconSortDesc className="w-3.5 h-3.5" />}
+                  {sortOrder === 'asc' ? 'Menor Preço' : 'Maior Preço'}
+                </button>
+             </div>
+
+             <div className="flex items-center gap-2 min-w-max">
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#52796F]/50 hidden md:block mr-2">Orçamento:</span>
+                
+                {[
+                  { id: 'under50', label: 'Lembrancinhas' },
+                  { id: '50to100', label: 'Presentinhos' },
+                  { id: 'over100', label: 'Presentões' }
+                ].map((range) => (
+                  <button
+                    key={range.id}
+                    onClick={() => setPriceRange(current => current === range.id ? null : range.id as any)}
+                    className={`
+                      px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap active:scale-95 border flex items-center gap-1.5
+                      ${priceRange === range.id 
+                        ? 'bg-[#52796F] text-white border-[#52796F]' 
+                        : 'bg-white text-[#52796F] border-[#52796F]/10 hover:border-[#B07D62]/30'
+                      }
+                    `}
+                  >
+                    {priceRange === range.id && <IconCheck className="w-3 h-3" />}
+                    {range.label}
+                  </button>
+                ))}
+                
+                {priceRange && (
+                   <button 
+                     onClick={() => setPriceRange(null)}
+                     className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-rose-400 hover:text-rose-600 ml-1"
+                   >
+                     Limpar
+                   </button>
+                )}
+             </div>
           </div>
         </div>
       </div>
@@ -323,39 +404,28 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 <IconSparkles className="w-10 h-10 text-[#B07D62]" />
              </div>
              <div className="absolute top-0 right-0 w-8 h-8 bg-[#52796F] rounded-full flex items-center justify-center border-2 border-white">
-                <IconCheck className="w-4 h-4 text-white" />
+                <IconFilter className="w-4 h-4 text-white" />
              </div>
           </div>
           
           <h3 className="text-2xl font-cursive text-[#354F52] mb-2">
-             {showAvailableOnly ? 'Uau! Que Incrível!' : 'Nenhum item encontrado'}
+             Ops, não encontramos nada!
           </h3>
           
           <p className="text-sm md:text-base text-[#52796F] max-w-md px-4 leading-relaxed">
-            {searchTerm 
-              ? <>Não encontramos nada com <strong>"{searchTerm}"</strong>.<br/>Tente buscar por outra palavra.</>
-              : showAvailableOnly 
-                ? <>Todos os itens desta categoria já foram escolhidos! Vocês são rápidos demais! ❤️</>
-                : 'A lista está sendo carregada ou não há itens nesta categoria.'}
+             Tente mudar os filtros de preço ou buscar por outra categoria.
           </p>
 
-          {searchTerm && (
-            <button 
-              onClick={() => setSearchTerm('')}
-              className="mt-6 px-6 py-3 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#2A3F41] transition-all"
-            >
-              Limpar busca
-            </button>
-          )}
-          
-          {showAvailableOnly && !searchTerm && (
-             <button 
-               onClick={() => setShowAvailableOnly(false)}
-               className="mt-6 text-[#B07D62] font-black uppercase tracking-widest text-[10px] hover:underline"
-             >
-               Ver itens já ganhos
-             </button>
-          )}
+          <button 
+            onClick={() => {
+               setSearchTerm('');
+               setPriceRange(null);
+               setShowAvailableOnly(false);
+            }}
+            className="mt-6 px-6 py-3 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#2A3F41] transition-all"
+          >
+            Limpar todos os filtros
+          </button>
         </div>
       )}
     </div>
