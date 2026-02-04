@@ -13,12 +13,22 @@ import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
 import ProcessingModal from './components/ProcessingModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
+import OfflineIndicator from './components/OfflineIndicator';
 import { IconArrowUp, IconCrown } from './components/Icons';
 
 declare global {
   interface Window {
     confetti: any;
   }
+}
+
+// Estrutura da Fila de Ações Offline
+interface PendingAction {
+  id: string; // ID único da ação (timestamp)
+  giftId: string;
+  status: 'available' | 'reserved';
+  reserverName?: string;
+  timestamp: number;
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -32,10 +42,88 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isPageVisible, setIsPageVisible] = useState(true);
   
+  // Offline & Sync States
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingQueue, setPendingQueue] = useState<PendingAction[]>([]);
+  
   const prevGiftsRef = useRef<Gift[]>([]);
 
-  // 1. POLLING ADAPTATIVO
-  // Detecta se a aba está visível ou não para economizar recursos
+  // 1. GESTÃO DE REDE E FILA
+  useEffect(() => {
+    // Carregar fila salva ao iniciar
+    const savedQueue = localStorage.getItem('housewarming_offline_queue');
+    if (savedQueue) {
+      try {
+        setPendingQueue(JSON.parse(savedQueue));
+      } catch (e) {
+        console.error("Erro ao ler fila offline", e);
+      }
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      addToast('info', 'Oba! A internet voltou. Sincronizando...');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      addToast('error', 'Ops! Conexão perdida. Mas pode continuar usando, salvamos tudo aqui.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Salvar fila no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('housewarming_offline_queue', JSON.stringify(pendingQueue));
+  }, [pendingQueue]);
+
+  // Processador de Fila (Quando Online)
+  useEffect(() => {
+    if (isOnline && pendingQueue.length > 0) {
+      const processQueue = async () => {
+        const actionToProcess = pendingQueue[0]; // Pega o primeiro da fila (FIFO)
+        
+        try {
+          const action = actionToProcess.status === 'reserved' ? 'claim' : 'unclaim';
+          
+          await fetch(SHEET_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ 
+              giftId: actionToProcess.giftId, 
+              action, 
+              guestName: actionToProcess.reserverName 
+            })
+          });
+
+          // Sucesso: Remove da fila
+          setPendingQueue(prev => prev.slice(1));
+          
+          // Se esvaziou a fila
+          if (pendingQueue.length === 1) {
+             addToast('success', 'Tudo sincronizado com sucesso! ✨');
+             mutateGifts(); // Atualiza dados reais
+          }
+
+        } catch (error) {
+          console.error("Erro ao processar fila:", error);
+          // Se der erro de rede real (mesmo estando "online"), espera um pouco antes de tentar de novo
+        }
+      };
+
+      const timer = setTimeout(processQueue, 2000); // Debounce para não floodar
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, pendingQueue]);
+
+
+  // 2. POLLING ADAPTATIVO
   useEffect(() => {
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
@@ -49,7 +137,8 @@ const App: React.FC = () => {
     fetcher, 
     { 
       fallbackData: [],
-      // Se visível: 10s (Seguro para Google Script). Se oculto: 60s (Economia).
+      // Pausa revalidação se estiver offline ou tiver coisas na fila (para não sobrescrever otimismo)
+      isPaused: () => !isOnline || pendingQueue.length > 0,
       refreshInterval: isPageVisible ? 10000 : 60000, 
       revalidateOnFocus: true,
       dedupingInterval: 2000
@@ -71,7 +160,7 @@ const App: React.FC = () => {
     onConfirm: () => {}
   });
 
-  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
+  const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts(prev => [...prev, { id, type, message }]);
   };
@@ -155,8 +244,36 @@ const App: React.FC = () => {
     }
   };
 
-  // 2. TRATAMENTO DE CONCORRÊNCIA (RACE CONDITION)
+  // 3. ATUALIZAÇÃO ROBUSTA COM SUPORTE OFFLINE
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
+    
+    // 1. Feedback Imediato Otimista (Sempre acontece)
+    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
+    mutateGifts(optimisticGifts, false); 
+
+    // 2. Verifica se está offline
+    if (!navigator.onLine) {
+       // Adiciona à fila
+       const newAction: PendingAction = {
+         id: Date.now().toString(),
+         giftId,
+         status,
+         reserverName,
+         timestamp: Date.now()
+       };
+       setPendingQueue(prev => [...prev, newAction]);
+       
+       // Feedback específico de offline
+       if (status === 'reserved') {
+          triggerConfetti(); // Confete mesmo offline, para alegria do usuário!
+          addToast('success', `Presente salvo no seu celular! Enviaremos assim que a internet voltar.`);
+       } else {
+          addToast('info', 'Alteração salva localmente.');
+       }
+       return; // Para por aqui, não tenta fetch
+    }
+
+    // 3. Se estiver Online, segue fluxo normal
     setProcessingMessage(status === 'reserved' 
       ? "Estamos embrulhando seu pedido e anotando seu nome..." 
       : "Estamos devolvendo o item para a prateleira..."
@@ -165,10 +282,6 @@ const App: React.FC = () => {
 
     const action = status === 'reserved' ? 'claim' : 'unclaim';
     const originalGifts = [...gifts];
-    
-    // UI Otimista
-    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
-    mutateGifts(optimisticGifts, false); 
 
     try {
       // Envia para o servidor
@@ -179,24 +292,21 @@ const App: React.FC = () => {
       });
 
       // Aguarda a confirmação REAL do servidor
-      // Isso pega o estado mais atual da planilha
       const updatedData = await mutateGifts();
       
-      // Delay estético
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // LÓGICA DE VERIFICAÇÃO PÓS-ESCRITA
+      // LÓGICA DE CONFIRMAÇÃO
       if (updatedData) {
         const confirmedItem = updatedData.find(g => g.id === giftId);
         
-        // Se eu tentei reservar...
         if (status === 'reserved') {
-          // ...e o item agora está no meu nome: Sucesso!
+          // Sucesso
           if (confirmedItem?.status === 'reserved' && confirmedItem?.reservedBy === reserverName) {
              triggerConfetti();
              addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
           } 
-          // ...mas o item está reservado por OUTRA pessoa ou continua disponível (erro): Falha!
+          // Conflito (alguém pegou antes)
           else {
              showAlert(
                'info', 
@@ -204,24 +314,36 @@ const App: React.FC = () => {
                `Parece que outra pessoa confirmou o item "${confirmedItem?.name}" segundos antes de você. A lista foi atualizada.`, 
                () => {}
              );
-             // O SWR já atualizou os dados reais, então a UI vai se corrigir sozinha
           }
         } else {
-           // Se eu tentei devolver (disponibilizar)
            addToast('info', 'Tudo bem! O item voltou para a lista.');
         }
       }
 
     } catch (e) {
       console.error("Erro ao salvar:", e);
-      addToast('error', 'Ops! Houve um erro de conexão. Tente novamente.');
-      mutateGifts(originalGifts, false); // Reverte visualmente
+      // FALLBACK: Se der erro no fetch (net caiu no meio), joga pra fila
+      const newAction: PendingAction = {
+         id: Date.now().toString(),
+         giftId,
+         status,
+         reserverName,
+         timestamp: Date.now()
+       };
+       setPendingQueue(prev => [...prev, newAction]);
+       addToast('warning', 'A internet oscilou, mas salvamos sua ação na fila de envio.');
+      
     } finally {
       setIsProcessing(false);
     }
   }, [gifts, mutateGifts]);
 
   const adminUpdateGift = async (giftId: string, updates: Partial<Gift>) => {
+    if (!isOnline) {
+      addToast('error', 'Você precisa estar online para editar itens como administrador.');
+      return;
+    }
+    
     setProcessingMessage("Atualizando as informações do item...");
     setIsProcessing(true);
     
@@ -269,7 +391,16 @@ const App: React.FC = () => {
 
   if (!user) return <Onboarding onSubmit={handleOnboarding} />;
 
-  const userReservedGifts = gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
+  // Combina lista real com ações pendentes para mostrar ao usuário o que é dele, mesmo offline
+  const effectiveGifts = gifts.map(g => {
+    const pendingAction = pendingQueue.slice().reverse().find(a => a.giftId === g.id); // Pega a ultima ação para este item
+    if (pendingAction) {
+      return { ...g, status: pendingAction.status, reservedBy: pendingAction.reserverName };
+    }
+    return g;
+  });
+
+  const userReservedGifts = effectiveGifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
   const hasItemsInCart = userReservedGifts.length > 0;
 
   return (
@@ -278,6 +409,9 @@ const App: React.FC = () => {
       <ProcessingModal isOpen={isProcessing} message={processingMessage} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
+      {/* Novo Indicador Offline */}
+      <OfflineIndicator isOnline={isOnline} pendingCount={pendingQueue.length} />
+
       <button
         onClick={scrollToTop}
         className={`
@@ -313,19 +447,19 @@ const App: React.FC = () => {
           <Countdown targetDate={EVENT_DATE} />
         </div>
 
-        <PresenceList gifts={gifts} currentUser={user} />
+        <PresenceList gifts={effectiveGifts} currentUser={user} />
 
         <main className="mt-12 md:mt-24 relative">
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
             <div className="text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
               <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
-                 <span className={`relative flex h-2 w-2 transition-opacity duration-500 ${isProcessing ? 'opacity-100' : 'opacity-0'}`}>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                 <span className={`relative flex h-2 w-2 transition-opacity duration-500 ${isProcessing || !isOnline ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${!isOnline ? 'bg-rose-400' : 'bg-amber-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${!isOnline ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
                   </span>
                   <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest opacity-60">
-                    {isProcessing ? 'Sincronizando...' : 'Atualizada em tempo real'}
+                    {!isOnline ? 'Modo Offline Ativado' : isProcessing ? 'Sincronizando...' : 'Atualizada em tempo real'}
                   </p>
               </div>
             </div>
@@ -362,14 +496,14 @@ const App: React.FC = () => {
 
           {showAdmin ? (
             <AdminPanel 
-              gifts={gifts} 
+              gifts={effectiveGifts} 
               onUpdateGift={adminUpdateGift}
               onReset={() => {}} 
             />
           ) : (
             <GiftList 
-              gifts={gifts} 
-              currentUser={user} // Passando o usuário para renderizar os Badges corretamente
+              gifts={effectiveGifts} 
+              currentUser={user} 
               onReserve={(gift) => {
                 showAlert(
                     'confirm',
@@ -380,6 +514,15 @@ const App: React.FC = () => {
                 );
               }} 
               onShopeeClick={handleShopeeInitiate}
+              onLinkReturn={(gift) => {
+                showAlert(
+                  'confirm',
+                  'Você comprou este presente?',
+                  `Se você finalizou a compra de "${gift.name}" na Shopee, confirme abaixo para reservarmos em seu nome.`,
+                  () => updateGiftStatus(gift.id, 'reserved', user.name),
+                  () => {}
+                );
+              }}
             />
           )}
         </main>

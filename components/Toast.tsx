@@ -3,7 +3,7 @@ import { IconCheck, IconSparkles, IconGift } from './Icons';
 
 export interface ToastMessage {
   id: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   message: string;
 }
 
@@ -47,6 +47,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
         }
         ${toast.type === 'success' ? 'bg-[#52796F]/90 text-white border-[#52796F]/50 shadow-[#52796F]/20' : 
           toast.type === 'error' ? 'bg-rose-500/90 text-white border-rose-500/50 shadow-rose-500/20' : 
+          toast.type === 'warning' ? 'bg-amber-500/90 text-white border-amber-500/50 shadow-amber-500/20' : 
           'bg-[#354F52]/90 text-white border-[#354F52]/50 shadow-[#354F52]/20'}
       `}
       role="alert"
@@ -57,6 +58,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
       `}>
         {toast.type === 'success' ? <IconSparkles className="w-5 h-5 text-yellow-200 animate-pulse" /> : 
          toast.type === 'error' ? <span className="font-bold text-lg">!</span> :
+         toast.type === 'warning' ? <span className="font-bold text-lg">!</span> :
          <IconGift className="w-4 h-4 text-white/90" />}
       </div>
       
