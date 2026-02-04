@@ -9,10 +9,10 @@ interface PresenceListProps {
 
 const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
   // Extrai nomes únicos de quem reservou
-  const giverNames = Array.from(new Set(
+  const giverNames: string[] = Array.from(new Set(
     gifts
       .filter(g => g.status === 'reserved' && g.reservedBy)
-      .map(g => g.reservedBy!)
+      .map(g => g.reservedBy as string)
   ));
 
   const confirmedCount = gifts.filter(g => g.status === 'reserved').length;

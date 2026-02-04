@@ -2,15 +2,16 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Gift, User } from '../types';
 import { 
   IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSparkles,
-  IconSortAsc, IconSortDesc, IconWallet, IconFilter
+  IconSortAsc, IconSortDesc, IconFilter, IconArrowUp
 } from './Icons';
 
 interface GiftListProps {
   gifts: Gift[];
-  currentUser?: User; // Novo prop para saber quem sou eu
+  currentUser?: User;
   onReserve: (gift: Gift) => void;
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
+  onLinkReturn: (gift: Gift) => void; // Adicionando prop faltante conforme uso no App.tsx
 }
 
 // Componente interno para gerenciar o carregamento individual de cada imagem
@@ -87,12 +88,13 @@ const IconSearch = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange, onLinkReturn }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   
-  // Smart Filters State - Faixas ajustadas para a realidade da lista (Max 179)
+  // Smart Filters State
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc'); // Padrão: Menor preço
   const [priceRange, setPriceRange] = useState<'under50' | '50to100' | 'over100' | null>(null);
 
@@ -140,7 +142,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
       result = result.filter(g => g.status === 'available');
     }
 
-    // 3. Filtro de Preço (Smart Filter - Recalibrado)
+    // 3. Filtro de Preço
     if (priceRange) {
       if (priceRange === 'under50') {
         result = result.filter(g => (g.priceEstimate || 0) <= 50);
@@ -169,7 +171,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
   }, [activeTab, onCategoryChange]);
 
-  // Se o usuário buscar algo, resetamos as abas para "Todos" para procurar globalmente
+  // Se o usuário buscar algo, resetamos as abas para "Todos"
   useEffect(() => {
     if (searchTerm.trim() && activeTab !== 'Todos') {
       setActiveTab('Todos');
@@ -185,17 +187,17 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
   };
 
+  const activeFiltersCount = (priceRange ? 1 : 0) + (showAvailableOnly ? 1 : 0);
+
   return (
     <div className="space-y-6 md:space-y-10">
-      {/* Sticky Filters Area */}
-      <div className="sticky top-0 z-50 pt-2 pb-4 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl md:backdrop-blur-md transition-all shadow-sm border-b border-[#52796F]/5">
-        <div className="flex flex-col gap-3 max-w-6xl mx-auto">
+      {/* Sticky Smart Header */}
+      <div className="sticky top-0 z-50 pt-2 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl transition-all shadow-sm border-b border-[#52796F]/5">
+        <div className="max-w-6xl mx-auto pb-2">
           
-          {/* Row 1: Search & Categories & Toggle (Mobile First Layout) */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            
-            {/* Search Bar */}
-            <div className="relative w-full md:w-64 group order-1">
+          {/* Row 1: Search & Filter Toggle */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative flex-grow group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
               </div>
@@ -203,93 +205,122 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar presente..."
-                className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl md:rounded-full shadow-sm border border-[#52796F]/10 text-[13px] md:text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
+                placeholder="O que você procura?"
+                className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl shadow-sm border border-[#52796F]/10 text-[13px] md:text-[11px] font-bold uppercase tracking-widest text-[#354F52] placeholder-[#52796F]/40 focus:outline-none focus:ring-2 focus:ring-[#B07D62]/20 transition-all"
               />
             </div>
 
-            {/* Categories (Scrollable) */}
-            <div className="w-full md:flex-1 overflow-x-auto pb-1 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 order-2">
-              <div className="flex md:flex-wrap gap-2 md:gap-2 min-w-max">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => handleTabChange(cat)}
-                    className={`whitespace-nowrap px-5 py-2.5 md:py-2 rounded-xl md:rounded-full text-[11px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 md:active:scale-100 ${
-                      activeTab === cat && !searchTerm 
-                        ? 'bg-[#354F52] text-white shadow-md transform scale-105 md:scale-100' 
-                        : 'bg-white md:bg-transparent border border-[#52796F]/5 md:border-transparent text-[#52796F] hover:bg-[#52796F]/5'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              className={`
+                relative h-11 w-11 flex items-center justify-center rounded-2xl border transition-all active:scale-95
+                ${isFiltersOpen || activeFiltersCount > 0
+                  ? 'bg-[#354F52] text-white border-[#354F52] shadow-md' 
+                  : 'bg-white text-[#52796F] border-[#52796F]/10 hover:border-[#B07D62]/30'
+                }
+              `}
+            >
+              <IconFilter className="w-5 h-5" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B07D62] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          </div>
 
-            {/* Availability Toggle */}
-            <div className="flex justify-center w-full md:w-auto order-3 md:order-3">
-                 <button 
-                  onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                  className={`flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2.5 md:py-2 rounded-xl md:rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95 md:active:scale-100 whitespace-nowrap ${
-                    showAvailableOnly 
-                      ? 'bg-[#B07D62] text-white border-[#B07D62]' 
-                      : 'bg-white md:bg-transparent text-[#B07D62] border-[#B07D62]/30 hover:bg-[#B07D62]/10'
+          {/* Row 2: Clean Categories (Horizontal Scroll) */}
+          <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
+            <div className="flex gap-2 min-w-max">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleTabChange(cat)}
+                  className={`whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 ${
+                    activeTab === cat && !searchTerm 
+                      ? 'bg-[#B07D62] text-white shadow-md' 
+                      : 'bg-white border border-[#52796F]/5 text-[#52796F] hover:bg-[#52796F]/5'
                   }`}
                 >
-                  {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
-                  {showAvailableOnly ? 'Mostrar tudo' : 'Ver só disponíveis'}
+                  {cat}
                 </button>
+              ))}
             </div>
           </div>
 
-          {/* Row 2: Smart Filters (Price & Sort) */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0 border-t border-[#52796F]/5 pt-2">
-             <div className="flex items-center gap-2 pr-4 md:pr-0 border-r border-[#52796F]/10 md:border-none mr-2 md:mr-0 flex-shrink-0">
-                <span className="text-[9px] font-black uppercase tracking-widest text-[#52796F]/50 hidden md:block mr-2">Ordenar:</span>
+          {/* Collapsible Filter Panel */}
+          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isFiltersOpen ? 'max-h-[300px] opacity-100 mt-2 pb-4' : 'max-h-0 opacity-0'}`}>
+            <div className="bg-white rounded-2xl border border-[#52796F]/10 p-4 shadow-sm space-y-4">
+              
+              {/* Opção 1: Visualização */}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Visualização</span>
+                <button 
+                  onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                    showAvailableOnly 
+                      ? 'bg-[#E6B8A2]/20 text-[#B07D62] border-[#B07D62]/30' 
+                      : 'bg-stone-50 text-stone-400 border-stone-100'
+                  }`}
+                >
+                  {showAvailableOnly ? <IconEye className="w-3 h-3" /> : <IconEyeOff className="w-3 h-3" />}
+                  {showAvailableOnly ? 'Só Disponíveis' : 'Mostrar Tudo'}
+                </button>
+              </div>
+
+              {/* Opção 2: Ordenação */}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Ordenar</span>
                 <button
                   onClick={() => setSortOrder(current => current === 'asc' ? 'desc' : 'asc')}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white border border-[#52796F]/10 text-[#354F52] hover:bg-[#52796F]/5 transition-all whitespace-nowrap active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-stone-50 text-[#354F52] border border-stone-100 hover:bg-stone-100"
                 >
                   {sortOrder === 'asc' ? <IconSortAsc className="w-3.5 h-3.5" /> : <IconSortDesc className="w-3.5 h-3.5" />}
                   {sortOrder === 'asc' ? 'Menor Preço' : 'Maior Preço'}
                 </button>
-             </div>
+              </div>
 
-             <div className="flex items-center gap-2 min-w-max">
-                <span className="text-[9px] font-black uppercase tracking-widest text-[#52796F]/50 hidden md:block mr-2">Orçamento:</span>
-                
-                {[
-                  { id: 'under50', label: 'Lembrancinhas' },
-                  { id: '50to100', label: 'Presentinhos' },
-                  { id: 'over100', label: 'Presentões' }
-                ].map((range) => (
-                  <button
-                    key={range.id}
-                    onClick={() => setPriceRange(current => current === range.id ? null : range.id as any)}
-                    className={`
-                      px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap active:scale-95 border flex items-center gap-1.5
-                      ${priceRange === range.id 
-                        ? 'bg-[#52796F] text-white border-[#52796F]' 
-                        : 'bg-white text-[#52796F] border-[#52796F]/10 hover:border-[#B07D62]/30'
-                      }
-                    `}
-                  >
-                    {priceRange === range.id && <IconCheck className="w-3 h-3" />}
-                    {range.label}
-                  </button>
-                ))}
-                
-                {priceRange && (
-                   <button 
-                     onClick={() => setPriceRange(null)}
-                     className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-rose-400 hover:text-rose-600 ml-1"
-                   >
-                     Limpar
-                   </button>
-                )}
-             </div>
+              {/* Opção 3: Faixa de Preço */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Orçamento</span>
+                   {priceRange && (
+                     <button onClick={() => setPriceRange(null)} className="text-[9px] text-rose-400 font-bold uppercase hover:underline">Limpar</button>
+                   )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'under50', label: 'Até R$50' },
+                    { id: '50to100', label: 'R$50 - R$100' },
+                    { id: 'over100', label: '+ R$100' }
+                  ].map((range) => (
+                    <button
+                      key={range.id}
+                      onClick={() => setPriceRange(current => current === range.id ? null : range.id as any)}
+                      className={`
+                        py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all border
+                        ${priceRange === range.id 
+                          ? 'bg-[#52796F] text-white border-[#52796F]' 
+                          : 'bg-stone-50 text-[#52796F] border-stone-100'
+                        }
+                      `}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsFiltersOpen(false)}
+                className="w-full py-3 bg-[#F8F7F2] text-[#354F52] font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-[#E6B8A2]/20 flex items-center justify-center gap-2"
+              >
+                <IconArrowUp className="w-3 h-3" />
+                Fechar Filtros
+              </button>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -388,6 +419,16 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                          </>
                        )}
                      </p>
+                      
+                     {/* Botão de Já Comprei (Link Return) para quem reservou */}
+                     {isMine && gift.status === 'reserved' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onLinkReturn(gift); }}
+                          className="mt-2 text-[10px] text-[#B07D62] font-bold underline decoration-dotted uppercase tracking-wider hover:text-[#966b54]"
+                        >
+                          Já comprei este item?
+                        </button>
+                     )}
                    </div>
                 )}
               </div>
@@ -421,6 +462,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                setSearchTerm('');
                setPriceRange(null);
                setShowAvailableOnly(false);
+               setIsFiltersOpen(false);
             }}
             className="mt-6 px-6 py-3 bg-[#354F52] text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-[#2A3F41] transition-all"
           >
