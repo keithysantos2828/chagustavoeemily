@@ -14,6 +14,7 @@ import CustomAlert, { AlertType } from './components/CustomAlert';
 import ProcessingModal from './components/ProcessingModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import OfflineIndicator from './components/OfflineIndicator';
+import DeliveryGuide from './components/DeliveryGuide';
 import { IconArrowUp, IconCrown } from './components/Icons';
 
 declare global {
@@ -443,8 +444,11 @@ const App: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
         <Header user={user} />
         
-        <div className="my-10 md:my-16">
+        <div className="my-10 md:my-16 space-y-6">
           <Countdown targetDate={EVENT_DATE} />
+          
+          {/* Novo Guia de Entrega Inteligente */}
+          <DeliveryGuide targetDate={EVENT_DATE} />
         </div>
 
         <PresenceList gifts={effectiveGifts} currentUser={user} />
