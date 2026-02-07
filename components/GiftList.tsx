@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Gift, User } from '../types';
 import { 
@@ -11,10 +12,29 @@ interface GiftListProps {
   onReserve: (gift: Gift) => void;
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
-  onLinkReturn: (gift: Gift) => void; // Adicionando prop faltante conforme uso no App.tsx
+  onLinkReturn: (gift: Gift) => void;
 }
 
-// Componente interno para gerenciar o carregamento individual de cada imagem
+// ==========================================
+// 💀 SKELETON COMPONENT
+// ==========================================
+const GiftSkeleton = () => (
+  <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 flex flex-col h-full animate-pulse">
+    <div className="aspect-square bg-stone-200 relative overflow-hidden">
+       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>
+    </div>
+    <div className="p-5 flex flex-col gap-3 flex-grow">
+      <div className="h-3 w-20 bg-stone-200 rounded-full"></div>
+      <div className="h-6 w-3/4 bg-stone-200 rounded-lg"></div>
+      <div className="mt-auto space-y-2">
+         <div className="h-10 w-full bg-stone-200 rounded-xl"></div>
+         <div className="h-10 w-full bg-stone-200 rounded-xl"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Componente interno para imagem
 const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMine: boolean }> = ({ src, alt, isReserved, isMine }) => {
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
@@ -59,7 +79,6 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
         />
       )}
       
-      {/* Badge para Outros */}
       {isReserved && !isMine && (
         <div className="absolute inset-0 bg-[#354F52]/10 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-500 z-20">
           <div className="bg-stone-100/90 text-stone-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 border border-stone-200">
@@ -69,7 +88,6 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
         </div>
       )}
 
-      {/* Badge para Mim (Destaque) */}
       {isReserved && isMine && (
         <div className="absolute inset-0 bg-[#52796F]/10 flex items-center justify-center animate-in fade-in duration-500 z-20">
           <div className="bg-[#FDFCF8] text-[#52796F] px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 border border-[#52796F]/20 transform scale-110">
@@ -94,9 +112,13 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   
-  // Smart Filters State
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc'); // Padrão: Menor preço
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc'); 
   const [priceRange, setPriceRange] = useState<'under50' | '50to100' | 'over100' | null>(null);
+
+  // Haptic Helper
+  const vibrate = () => {
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -107,6 +129,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   }, []);
 
   const handleTabChange = (category: string) => {
+    vibrate();
     setActiveTab(category);
     setSearchTerm('');
     
@@ -127,7 +150,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   const filteredGifts = useMemo(() => {
     let result = gifts;
 
-    // 1. Filtro de Texto
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(g => g.name.toLowerCase().includes(term));
@@ -137,12 +159,10 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
       }
     }
       
-    // 2. Filtro de Disponibilidade
     if (showAvailableOnly) {
       result = result.filter(g => g.status === 'available');
     }
 
-    // 3. Filtro de Preço
     if (priceRange) {
       if (priceRange === 'under50') {
         result = result.filter(g => (g.priceEstimate || 0) <= 50);
@@ -153,14 +173,17 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
       }
     }
 
-    // 4. Ordenação
-    if (sortOrder) {
-      result = [...result].sort((a, b) => {
-        const priceA = a.priceEstimate || 0;
-        const priceB = b.priceEstimate || 0;
-        return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
-      });
-    }
+    // 🧠 ORDENAÇÃO INTELIGENTE: Disponíveis PRIMEIRO, depois por preço
+    result = [...result].sort((a, b) => {
+      // 1. Critério: Status (Disponível vem antes)
+      if (a.status === 'available' && b.status !== 'available') return -1;
+      if (a.status !== 'available' && b.status === 'available') return 1;
+
+      // 2. Critério: Ordem selecionada (Preço)
+      const priceA = a.priceEstimate || 0;
+      const priceB = b.priceEstimate || 0;
+      return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
+    });
     
     return result;
   }, [gifts, activeTab, showAvailableOnly, searchTerm, priceRange, sortOrder]);
@@ -171,7 +194,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
   }, [activeTab, onCategoryChange]);
 
-  // Se o usuário buscar algo, resetamos as abas para "Todos"
   useEffect(() => {
     if (searchTerm.trim() && activeTab !== 'Todos') {
       setActiveTab('Todos');
@@ -181,13 +203,21 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
   }, [searchTerm]);
 
-  const handleJustBrowse = (gift: Gift) => {
-    if (gift.shopeeUrl) {
-      window.open(gift.shopeeUrl, '_blank');
-    }
-  };
-
   const activeFiltersCount = (priceRange ? 1 : 0) + (showAvailableOnly ? 1 : 0);
+
+  // 🦴 SKELETON STATE: Se não houver gifts carregados ainda
+  if (gifts.length === 0) {
+    return (
+      <div className="space-y-6 md:space-y-10">
+         <div className="flex gap-2 overflow-hidden pb-2 opacity-50">
+             {[1,2,3,4].map(i => <div key={i} className="h-8 w-24 bg-stone-200 rounded-full animate-pulse"></div>)}
+         </div>
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-2 md:px-0">
+             {[1,2,3,4,5,6,7,8].map(i => <GiftSkeleton key={i} />)}
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-10">
@@ -211,7 +241,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
             </div>
 
             <button
-              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              onClick={() => { vibrate(); setIsFiltersOpen(!isFiltersOpen); }}
               className={`
                 relative h-11 w-11 flex items-center justify-center rounded-2xl border transition-all active:scale-95
                 ${isFiltersOpen || activeFiltersCount > 0
@@ -252,11 +282,10 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
           <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isFiltersOpen ? 'max-h-[300px] opacity-100 mt-2 pb-4' : 'max-h-0 opacity-0'}`}>
             <div className="bg-white rounded-2xl border border-[#52796F]/10 p-4 shadow-sm space-y-4">
               
-              {/* Opção 1: Visualização */}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Visualização</span>
                 <button 
-                  onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                  onClick={() => { vibrate(); setShowAvailableOnly(!showAvailableOnly); }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${
                     showAvailableOnly 
                       ? 'bg-[#E6B8A2]/20 text-[#B07D62] border-[#B07D62]/30' 
@@ -268,11 +297,10 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 </button>
               </div>
 
-              {/* Opção 2: Ordenação */}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Ordenar</span>
                 <button
-                  onClick={() => setSortOrder(current => current === 'asc' ? 'desc' : 'asc')}
+                  onClick={() => { vibrate(); setSortOrder(current => current === 'asc' ? 'desc' : 'asc'); }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-stone-50 text-[#354F52] border border-stone-100 hover:bg-stone-100"
                 >
                   {sortOrder === 'asc' ? <IconSortAsc className="w-3.5 h-3.5" /> : <IconSortDesc className="w-3.5 h-3.5" />}
@@ -280,7 +308,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 </button>
               </div>
 
-              {/* Opção 3: Faixa de Preço */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                    <span className="text-[10px] font-black uppercase tracking-widest text-[#52796F]/60">Orçamento</span>
@@ -296,7 +323,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                   ].map((range) => (
                     <button
                       key={range.id}
-                      onClick={() => setPriceRange(current => current === range.id ? null : range.id as any)}
+                      onClick={() => { vibrate(); setPriceRange(current => current === range.id ? null : range.id as any); }}
                       className={`
                         py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all border
                         ${priceRange === range.id 
@@ -341,7 +368,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 ${isMine 
                    ? 'border-[#52796F] ring-1 ring-[#52796F]/20' // Destaque se for meu
                    : isReserved 
-                     ? 'border-transparent opacity-80' // Mais apagado se for de outro
+                     ? 'border-transparent opacity-80 bg-stone-50/50' // Mais apagado se for de outro
                      : 'border-[#52796F]/5'
                 }
               `}
@@ -373,7 +400,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                     `}>
                       {hasLink && (
                         <button 
-                          onClick={(e) => { e.stopPropagation(); onShopeeClick(gift); }}
+                          onClick={(e) => { vibrate(); e.stopPropagation(); onShopeeClick(gift); }}
                           className="w-full bg-[#B07D62] text-white py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 active:scale-95 hover:bg-[#966b54] transition-all flex items-center justify-center gap-2"
                         >
                           <IconShoppingCart className="w-4 h-4" />
@@ -382,7 +409,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                       )}
 
                       <button 
-                        onClick={(e) => { e.stopPropagation(); onReserve(gift); }}
+                        onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
                         className={`w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
                           hasLink 
                             ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
@@ -395,7 +422,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
 
                       {hasLink && (
                         <button 
-                          onClick={(e) => { e.stopPropagation(); handleJustBrowse(gift); }}
+                          onClick={(e) => { e.stopPropagation(); if (gift.shopeeUrl) window.open(gift.shopeeUrl, '_blank'); }}
                           className="w-full py-2 text-[10px] md:text-[9px] font-bold uppercase tracking-widest text-[#52796F] hover:text-[#354F52] hover:underline opacity-80 hover:opacity-100 transition-all flex items-center justify-center gap-1"
                         >
                           <IconEye className="w-3 h-3" />
@@ -423,7 +450,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                      {/* Botão de Já Comprei (Link Return) para quem reservou */}
                      {isMine && gift.status === 'reserved' && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); onLinkReturn(gift); }}
+                          onClick={(e) => { vibrate(); e.stopPropagation(); onLinkReturn(gift); }}
                           className="mt-2 text-[10px] text-[#B07D62] font-bold underline decoration-dotted uppercase tracking-wider hover:text-[#966b54]"
                         >
                           Já comprei este item?
@@ -459,6 +486,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
 
           <button 
             onClick={() => {
+               vibrate();
                setSearchTerm('');
                setPriceRange(null);
                setShowAvailableOnly(false);

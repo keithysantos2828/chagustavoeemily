@@ -16,6 +16,8 @@ import ProcessingModal from './components/ProcessingModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import OfflineIndicator from './components/OfflineIndicator';
 import DeliveryGuide from './components/DeliveryGuide';
+import MusicPlayer from './components/MusicPlayer';
+import SuccessModal from './components/SuccessModal';
 import { IconArrowUp, IconCrown } from './components/Icons';
 
 declare global {
@@ -43,6 +45,10 @@ const App: React.FC = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isPageVisible, setIsPageVisible] = useState(true);
+  
+  // Success Modal State
+  const [successGift, setSuccessGift] = useState<Gift | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Offline & Sync States
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -251,6 +257,8 @@ const App: React.FC = () => {
     
     // 1. Feedback Imediato Otimista (Sempre acontece)
     const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
+    const targetGift = gifts.find(g => g.id === giftId);
+    
     mutateGifts(optimisticGifts, false); 
 
     // 2. Verifica se está offline
@@ -267,8 +275,12 @@ const App: React.FC = () => {
        
        // Feedback específico de offline
        if (status === 'reserved') {
-          triggerConfetti(); // Confete mesmo offline, para alegria do usuário!
-          addToast('success', `Presente salvo no seu celular! Enviaremos assim que a internet voltar.`);
+          triggerConfetti();
+          // Usa o modal de sucesso mesmo offline
+          if (targetGift) {
+            setSuccessGift({...targetGift, status: 'reserved', reservedBy: reserverName});
+            setShowSuccessModal(true);
+          }
        } else {
           addToast('info', 'Alteração salva localmente.');
        }
@@ -305,7 +317,10 @@ const App: React.FC = () => {
           // Sucesso
           if (confirmedItem?.status === 'reserved' && confirmedItem?.reservedBy === reserverName) {
              triggerConfetti();
-             addToast('success', `Que alegria, ${reserverName}! Muito obrigado por esse presente!`);
+             if (confirmedItem) {
+               setSuccessGift(confirmedItem);
+               setShowSuccessModal(true);
+             }
           } 
           // Conflito (alguém pegou antes)
           else {
@@ -408,10 +423,21 @@ const App: React.FC = () => {
     <div className="min-h-[100dvh] bg-[#F8F7F2] text-[#3D403D] pb-safe-bottom">
       <CustomAlert {...alertConfig} />
       <ProcessingModal isOpen={isProcessing} message={processingMessage} />
+      
+      {/* Novo Modal de Sucesso Duolingo Style */}
+      <SuccessModal 
+        isOpen={showSuccessModal} 
+        gift={successGift} 
+        onClose={() => setShowSuccessModal(false)} 
+      />
+
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
-      {/* Novo Indicador Offline */}
+      {/* Indicadores */}
       <OfflineIndicator isOnline={isOnline} pendingCount={pendingQueue.length} />
+      
+      {/* Music Player */}
+      <MusicPlayer />
 
       <button
         onClick={scrollToTop}

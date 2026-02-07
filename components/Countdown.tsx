@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { IconHeart, IconSparkles, IconCheck } from './Icons';
+import { IconHeart, IconSparkles, IconCheck, IconCalendarPlus } from './Icons';
 
 interface CountdownProps {
   targetDate: Date;
@@ -80,6 +81,17 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     }
   };
   
+  const addToCalendar = () => {
+    // Google Calendar Link Generator
+    const text = encodeURIComponent("Chá de Casa Nova - Emily & Gustavo");
+    const dates = "20260215T150000/20260215T190000"; // YYYYMMDDTHHMMSS
+    const details = encodeURIComponent("Venha celebrar com a gente! Rua Ângela Perin D'agostin - Embu, Colombo - PR");
+    const location = encodeURIComponent("Sede Campestre Sintracon");
+    
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}&location=${location}`;
+    window.open(url, '_blank');
+  };
+
   const renderCounterItem = (value: number, label: string, isUrgent: boolean = false, padZero: boolean = true) => (
     <div className="flex flex-col items-center flex-1 min-w-[70px] max-w-[110px] md:max-w-[130px] animate-in zoom-in-50 duration-500">
       <div className={`
@@ -171,6 +183,17 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
             </>
           )}
         </div>
+      )}
+
+      {/* Botão Adicionar ao Calendário */}
+      {mode === 'FUTURE' && (
+         <button 
+           onClick={addToCalendar}
+           className="bg-white/50 backdrop-blur-sm px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest text-[#52796F] border border-[#52796F]/10 hover:bg-white hover:text-[#354F52] hover:shadow-md transition-all flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-700 delay-300"
+         >
+           <IconCalendarPlus className="w-4 h-4" />
+           Salvar na Agenda
+         </button>
       )}
 
       {/* Submensagem */}
