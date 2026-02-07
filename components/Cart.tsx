@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Gift, User } from '../types';
 import { IconGift, IconArrowUp, IconArrowRight } from './Icons';
@@ -25,7 +26,7 @@ const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
 
       <div className={`
         fixed z-[100] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
-        /* Mobile: Bottom Sheet Full Width */
+        /* Mobile: Bottom Sheet Full Width com suporte a Safe Area */
         bottom-0 inset-x-0 w-full
         /* Desktop: Floating Widget Bottom Right */
         md:bottom-6 md:inset-x-auto md:right-6 md:w-[380px] md:flex md:flex-col md:items-end
@@ -35,8 +36,10 @@ const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
           pointer-events-auto bg-[#354F52] text-white overflow-hidden relative
           /* Mobile Styles */
           rounded-t-[2rem] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.3)]
+          /* Compensação para iPhone X home indicator no padding inferior */
+          pb-safe-bottom
           /* Desktop Styles */
-          md:rounded-[1.5rem] md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] md:border md:border-white/10
+          md:rounded-[1.5rem] md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] md:border md:border-white/10 md:pb-0
           transition-all duration-500
         `}>
           

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR, { mutate } from 'swr';
 import { User, Gift } from './types';
@@ -282,7 +283,6 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     const action = status === 'reserved' ? 'claim' : 'unclaim';
-    const originalGifts = [...gifts];
 
     try {
       // Envia para o servidor
@@ -405,7 +405,7 @@ const App: React.FC = () => {
   const hasItemsInCart = userReservedGifts.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] pb-24 md:pb-10">
+    <div className="min-h-[100dvh] bg-[#F8F7F2] text-[#3D403D] pb-safe-bottom">
       <CustomAlert {...alertConfig} />
       <ProcessingModal isOpen={isProcessing} message={processingMessage} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -420,13 +420,15 @@ const App: React.FC = () => {
           transition-all duration-500 hover:bg-[#2A3F41] active:scale-95 border border-white/10
           flex items-center justify-center
           ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
-          ${hasItemsInCart ? 'bottom-24 md:bottom-32' : 'bottom-6 md:bottom-8'}
+          /* Ajuste para não ficar atrás do cart no mobile */
+          ${hasItemsInCart ? 'bottom-28 md:bottom-32' : 'bottom-6 md:bottom-24 mb-safe'}
         `}
         aria-label="Voltar ao topo"
       >
         <IconArrowUp className="w-5 h-5 md:w-6 md:h-6" />
       </button>
 
+      {/* Cart (Bottom Sheet Nativo) */}
       <Cart 
         user={user} 
         reservedGifts={userReservedGifts} 
@@ -446,8 +448,6 @@ const App: React.FC = () => {
         
         <div className="my-10 md:my-16 space-y-6">
           <Countdown targetDate={EVENT_DATE} />
-          
-          {/* Novo Guia de Entrega Inteligente */}
           <DeliveryGuide targetDate={EVENT_DATE} />
         </div>
 
@@ -532,6 +532,8 @@ const App: React.FC = () => {
         </main>
 
         <Footer onShowAlert={showAlert} />
+        {/* Espaçamento extra no final para scroll não cortar conteúdo em telas com notch */}
+        <div className="h-24 md:h-12 w-full"></div>
       </div>
     </div>
   );
