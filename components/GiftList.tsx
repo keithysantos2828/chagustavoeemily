@@ -117,7 +117,13 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
 
   // Haptic Helper
   const vibrate = () => {
-    if (navigator.vibrate) navigator.vibrate(10);
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+    } catch (e) {
+      // Ignore unsupported operation
+    }
   };
 
   useEffect(() => {
@@ -227,7 +233,13 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
           
           {/* Row 1: Search & Filter Toggle */}
           <div className="flex items-center gap-3 mb-3">
-            <div className="relative flex-grow group">
+            
+            {/* 
+               ESPAÇO RESERVADO PARA O MUSIC PLAYER (DOCKED)
+               Adicionamos 'ml-12' (margin-left) para empurrar a barra de busca
+               e criar um "slot" visual onde o player vai pousar.
+            */}
+            <div className="relative flex-grow group ml-14 transition-all duration-500">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <IconSearch className="w-4 h-4 text-[#52796F]/50 group-focus-within:text-[#B07D62] transition-colors" />
               </div>
@@ -243,7 +255,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
             <button
               onClick={() => { vibrate(); setIsFiltersOpen(!isFiltersOpen); }}
               className={`
-                relative h-11 w-11 flex items-center justify-center rounded-2xl border transition-all active:scale-95
+                relative h-11 w-11 flex items-center justify-center rounded-2xl border transition-all active:scale-95 flex-shrink-0
                 ${isFiltersOpen || activeFiltersCount > 0
                   ? 'bg-[#354F52] text-white border-[#354F52] shadow-md' 
                   : 'bg-white text-[#52796F] border-[#52796F]/10 hover:border-[#B07D62]/30'
