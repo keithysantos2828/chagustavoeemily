@@ -1,32 +1,47 @@
 
 import React, { useEffect, useState } from 'react';
+import { IconHeart } from './Icons';
 
 interface IntroAnimationProps {
   onComplete: () => void;
+  mode?: 'default' | 'returning';
 }
 
-const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
+const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete, mode = 'default' }) => {
   // Stages: 
   // 0: Init
-  // 1: Draw Key
-  // 2: Fill Key & Text Fade In
-  // 3: INSERT Key (New Step: Encaixe)
-  // 4: Turn Key (Unlock)
-  // 5: Light Burst (Open)
+  // 1: Draw Key (PULADO SE RETURNING)
+  // 2: Fill Key & Text Fade In (PULADO SE RETURNING)
+  // 3: INSERT Key (PULADO SE RETURNING)
+  // 4: Turn Key (PULADO SE RETURNING)
+  // 5: Light Burst / Text Fade In Returning
   // 6: Doors Open
   // 7: Finish
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    const timelines = [
-      { ms: 100, stage: 1 },   // Desenha
-      { ms: 2000, stage: 2 },  // Preenche
-      { ms: 3200, stage: 3 },  // INSERE (Encaixe mecânico)
-      { ms: 3800, stage: 4 },  // Gira
-      { ms: 4600, stage: 5 },  // Luz
-      { ms: 5000, stage: 6 },  // Portas
-      { ms: 6500, stage: 7 },  // Fim
-    ];
+    let timelines: { ms: number; stage: number }[] = [];
+
+    if (mode === 'returning') {
+       // TIMELINE RÁPIDA (Visitante Recorrente) ~3.5s total
+       // Começa direto no Stage 5 (Sem chave, apenas texto e luz)
+       timelines = [
+         { ms: 100, stage: 5 },  // Exibe texto "Que bom te ver"
+         { ms: 1500, stage: 6 }, // Portas abrem
+         { ms: 3000, stage: 7 }, // Fim
+       ];
+    } else {
+       // TIMELINE COMPLETA (Primeira Visita) ~6.5s total
+       timelines = [
+         { ms: 100, stage: 1 },   // Desenha
+         { ms: 2000, stage: 2 },  // Preenche
+         { ms: 3200, stage: 3 },  // Insere
+         { ms: 3800, stage: 4 },  // Gira
+         { ms: 4600, stage: 5 },  // Luz
+         { ms: 5000, stage: 6 },  // Portas
+         { ms: 6500, stage: 7 },  // Fim
+       ];
+    }
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -38,7 +53,7 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
     });
 
     return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+  }, [onComplete, mode]);
 
   if (stage === 7) return null;
 
@@ -62,14 +77,14 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
         @keyframes insertKey {
           0% { transform: translateY(0) scale(1); }
           40% { transform: translateY(-30px) scale(1.1); } /* Recua (Anticipação) */
-          100% { transform: translateY(0) scale(0.85); } /* Insere (Profundidade) - Fica menor pq "entrou" */
+          100% { transform: translateY(0) scale(0.85); } /* Insere (Profundidade) */
         }
 
-        /* Giro da chave (Agora considerando a escala de inserção) */
+        /* Giro da chave */
         @keyframes turnKey {
           0% { transform: rotate(0deg) scale(0.85); }
-          30% { transform: rotate(10deg) scale(0.85); } /* Tensão antes de girar */
-          100% { transform: rotate(-90deg) scale(0.9); } /* Giro completo */
+          30% { transform: rotate(10deg) scale(0.85); } 
+          100% { transform: rotate(-90deg) scale(0.9); } 
         }
 
         /* Brilho de fundo pulsante */
@@ -141,96 +156,97 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
         <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/20"></div>
       </div>
 
-      {/* CONTEÚDO CENTRAL (CHAVE) */}
+      {/* CONTEÚDO CENTRAL */}
       <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center transition-all duration-500 ${stage >= 6 ? 'opacity-0 scale-150' : 'opacity-100'}`}>
         
         {/* Luz de Fundo (Glow) */}
-        {stage >= 2 && (
-          <div className="absolute w-[300px] h-[300px] bg-[#B07D62]/20 rounded-full blur-[80px] animate-[glowPulse_3s_infinite_ease-in-out]"></div>
-        )}
+        <div className="absolute w-[300px] h-[300px] bg-[#B07D62]/20 rounded-full blur-[80px] animate-[glowPulse_3s_infinite_ease-in-out]"></div>
 
-        {/* Sombra da Fechadura (Aparece antes de inserir para dar o alvo) */}
-        {stage >= 3 && (
-           <div className="absolute w-8 h-24 bg-black/40 rounded-full blur-xl animate-[holeAppear_0.3s_ease-out] mb-12"></div>
-        )}
-
-        {/* Estouro de Luz Branca (Flash) */}
-        {stage === 5 && (
-          <div className="absolute w-[100px] h-[100px] bg-white rounded-full blur-[50px] animate-[lightBurst_0.6s_ease-out_forwards] z-50"></div>
-        )}
-
-        {/* SVG DA CHAVE */}
-        <div className={`
-            relative w-48 h-48 md:w-64 md:h-64 
-            ${stage === 3 ? 'animate-insert' : ''} 
-            ${stage >= 4 ? 'scale-90 animate-turn' : ''} /* Mantém escala reduzida após insert */
-        `}>
-           <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible drop-shadow-2xl">
-              <defs>
-                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#E6B8A2" />
-                  <stop offset="50%" stopColor="#B07D62" />
-                  <stop offset="100%" stopColor="#8A5A44" />
-                </linearGradient>
-              </defs>
-              
-              {/* Contorno da Chave */}
-              <path
-                  className={`key-path ${stage >= 1 ? 'animate-draw' : ''} ${stage >= 2 ? 'animate-fill' : ''}`}
-                  d="
-                    M 100 40 
-                    C 85 40 75 50 75 65 
-                    C 75 75 80 82 88 86
-                    L 88 140 
-                    L 78 140 L 78 150 L 88 150
-                    L 88 160
-                    L 78 160 L 78 170 L 100 170 L 122 170
-                    L 122 160 L 112 160
-                    L 112 150 L 122 150 L 122 140
-                    L 112 140
-                    L 112 86
-                    C 120 82 125 75 125 65
-                    C 125 50 115 40 100 40
-                    Z
-                    M 100 55
-                    C 105 55 108 58 108 63
-                    C 108 68 105 71 100 71
-                    C 95 71 92 68 92 63
-                    C 92 58 95 55 100 55
-                    Z
-                  "
-                  fill="url(#goldGradient)"
-                  stroke="#E6B8A2"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fillOpacity="0"
-              />
-              
-              {/* Brilhos na Chave (Sparkles) */}
-              {stage >= 2 && (
-                 <g className="animate-pulse">
-                    <path d="M 80 50 L 82 45 L 84 50 L 89 52 L 84 54 L 82 59 L 80 54 L 75 52 Z" fill="white" fillOpacity="0.8" />
-                    <path d="M 120 160 L 121 157 L 122 160 L 125 161 L 122 162 L 121 165 L 120 162 L 117 161 Z" fill="white" fillOpacity="0.6" />
-                 </g>
+        {mode === 'default' ? (
+           /* === MODO DEFAULT: CHAVE E FECHADURA === */
+           <>
+              {/* Sombra da Fechadura */}
+              {stage >= 3 && (
+                 <div className="absolute w-8 h-24 bg-black/40 rounded-full blur-xl animate-[holeAppear_0.3s_ease-out] mb-12"></div>
               )}
-           </svg>
-        </div>
 
-        {/* Texto Fade In */}
-        <div 
-          className={`
-            absolute bottom-16 md:bottom-20 text-center transition-all duration-1000 transform
-            ${stage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
-          `}
-        >
-          <p className="text-[#E6B8A2] text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-2 drop-shadow-md">
-            Abrindo as portas
-          </p>
-          <h1 className="text-3xl md:text-5xl font-cursive text-[#F8F7F2] drop-shadow-lg">
-            Do Nosso Sonho
-          </h1>
-        </div>
+              {/* Estouro de Luz Branca */}
+              {stage === 5 && (
+                <div className="absolute w-[100px] h-[100px] bg-white rounded-full blur-[50px] animate-[lightBurst_0.6s_ease-out_forwards] z-50"></div>
+              )}
+
+              {/* SVG DA CHAVE */}
+              <div className={`
+                  relative w-48 h-48 md:w-64 md:h-64 
+                  ${stage === 3 ? 'animate-insert' : ''} 
+                  ${stage >= 4 ? 'scale-90 animate-turn' : ''}
+              `}>
+                 <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible drop-shadow-2xl">
+                    <defs>
+                      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#E6B8A2" />
+                        <stop offset="50%" stopColor="#B07D62" />
+                        <stop offset="100%" stopColor="#8A5A44" />
+                      </linearGradient>
+                    </defs>
+                    
+                    <path
+                        className={`key-path ${stage >= 1 ? 'animate-draw' : ''} ${stage >= 2 ? 'animate-fill' : ''}`}
+                        d="
+                          M 100 40 C 85 40 75 50 75 65 C 75 75 80 82 88 86 L 88 140 L 78 140 L 78 150 L 88 150 L 88 160 L 78 160 L 78 170 L 100 170 L 122 170 L 122 160 L 112 160 L 112 150 L 122 150 L 122 140 L 112 140 L 112 86 C 120 82 125 75 125 65 C 125 50 115 40 100 40 Z
+                          M 100 55 C 105 55 108 58 108 63 C 108 68 105 71 100 71 C 95 71 92 68 92 63 C 92 58 95 55 100 55 Z
+                        "
+                        fill="url(#goldGradient)"
+                        stroke="#E6B8A2"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fillOpacity="0"
+                    />
+                    
+                    {stage >= 2 && (
+                       <g className="animate-pulse">
+                          <path d="M 80 50 L 82 45 L 84 50 L 89 52 L 84 54 L 82 59 L 80 54 L 75 52 Z" fill="white" fillOpacity="0.8" />
+                          <path d="M 120 160 L 121 157 L 122 160 L 125 161 L 122 162 L 121 165 L 120 162 L 117 161 Z" fill="white" fillOpacity="0.6" />
+                       </g>
+                    )}
+                 </svg>
+              </div>
+
+              {/* Texto Padrão */}
+              <div 
+                className={`
+                  absolute bottom-16 md:bottom-20 text-center transition-all duration-1000 transform
+                  ${stage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
+                `}
+              >
+                <p className="text-[#E6B8A2] text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-2 drop-shadow-md">
+                  Abrindo as portas
+                </p>
+                <h1 className="text-3xl md:text-5xl font-cursive text-[#F8F7F2] drop-shadow-lg">
+                  Do Nosso Sonho
+                </h1>
+              </div>
+           </>
+        ) : (
+           /* === MODO RETURNING: APENAS TEXTO BOAS-VINDAS === */
+           <div 
+              className={`text-center transition-all duration-1000 transform animate-in fade-in zoom-in-95 duration-700
+                ${stage >= 5 ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+              `}
+           >
+              <div className="mb-6 flex justify-center">
+                 <IconHeart className="w-16 h-16 text-[#B07D62] animate-pulse drop-shadow-lg" />
+              </div>
+              <p className="text-[#E6B8A2] text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-4 drop-shadow-md">
+                A casa é sua
+              </p>
+              <h1 className="text-4xl md:text-6xl font-cursive text-[#F8F7F2] drop-shadow-lg leading-tight">
+                Que bom te ver<br/>de volta!
+              </h1>
+           </div>
+        )}
+
       </div>
       
       {/* Texture Overlay */}

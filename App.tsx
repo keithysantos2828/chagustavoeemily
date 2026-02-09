@@ -20,7 +20,15 @@ const App: React.FC = () => {
   const [showAdmin, setShowAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Estado da Intro
+  // Estado da Intro: Verifica se já existe login salvo para decidir o modo
+  const [introMode] = useState<'default' | 'returning'>(() => {
+    // Verificação segura para SSR/Vite
+    if (typeof window !== 'undefined' && localStorage.getItem('housewarming_user_name')) {
+      return 'returning';
+    }
+    return 'default';
+  });
+  
   const [showIntro, setShowIntro] = useState(true);
 
   // Bloqueio de Scroll enquanto a intro roda
@@ -157,16 +165,15 @@ const App: React.FC = () => {
     );
   };
 
-  // Se a Intro ainda está rodando, mostramos ela SOBRE tudo, mas o Onboarding só renderiza se não tiver user
-  // Mas para o efeito "revelar" funcionar, o conteúdo de baixo já precisa estar montado.
-  // Então a estrutura é: App renderiza normal, Intro fica por cima com z-index alto.
-
   return (
     <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] overflow-x-hidden pb-10">
       
       {/* INTRODUÇÃO CINEMATOGRÁFICA */}
       {showIntro && (
-        <IntroAnimation onComplete={() => setShowIntro(false)} />
+        <IntroAnimation 
+          mode={introMode} 
+          onComplete={() => setShowIntro(false)} 
+        />
       )}
 
       <CustomAlert {...alertConfig} />
@@ -177,9 +184,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Só mostra o onboarding e o resto se o usuário estiver logado OU se estivermos apenas exibindo a home por baixo da intro */}
       {!user ? (
-         /* Escondemos o onboarding visualmente durante a intro para não vazar, mas ele monta */
          <div className={showIntro ? 'opacity-0' : 'opacity-100 transition-opacity duration-1000'}>
             <Onboarding onSubmit={handleOnboarding} />
          </div>
@@ -199,7 +204,6 @@ const App: React.FC = () => {
             }} 
           />
 
-          {/* AI Chat Bot Floating */}
           <AIChat 
             gifts={gifts} 
             user={user} 
