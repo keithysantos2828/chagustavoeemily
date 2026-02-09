@@ -30,17 +30,16 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [loading, setLoading] = useState(false); // Loading inicial
-  const [isProcessing, setIsProcessing] = useState(false); // Loading de Ação
+  const [loading, setLoading] = useState(false); // Loading de barra superior
+  const [isProcessing, setIsProcessing] = useState(false); // Modal de Processamento de Ação
+  
+  // Controle de Carregamento Inicial (Splash Screen)
+  const [isAppReady, setIsAppReady] = useState(false);
+  
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  
-  // Estado para o Modal de Sucesso (Separado do Alert comum)
   const [successGift, setSuccessGift] = useState<Gift | null>(null);
-  
-  // Ref para guardar o estado anterior dos presentes
   const prevGiftsRef = useRef<Gift[]>([]);
 
-  // Verifica se é o dia do evento (Lógica Real Apenas)
   const isEventDay = React.useMemo(() => {
     const now = new Date();
     return now.getDate() === EVENT_DATE.getDate() && 
@@ -103,7 +102,6 @@ const App: React.FC = () => {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
-  // Sistema de Toasts
   const addToast = (type: ToastMessage['type'], message: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts(prev => [...prev, { id, type, message }]);
@@ -113,31 +111,24 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  const refreshGifts = async () => {
-    if (!SHEET_SCRIPT_URL) return;
+  const refreshGifts = async (isFirstLoad = false) => {
+    if (!SHEET_SCRIPT_URL) {
+      if (isFirstLoad) setIsAppReady(true);
+      return;
+    }
     
-    // Smart Polling: Não atualiza se a aba estiver oculta para economizar bateria/dados
-    if (document.hidden) return;
+    if (!isFirstLoad && document.hidden) return;
 
     try {
       const response = await fetch(SHEET_SCRIPT_URL);
       const data = await response.json();
       
-      // Lógica de Notificação em Tempo Real
-      if (prevGiftsRef.current.length > 0 && user) {
+      if (prevGiftsRef.current.length > 0 && user && !isFirstLoad) {
         data.forEach((newGift: Gift) => {
           const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
-          
           if (oldGift) {
-            // Alguém reservou (e não fui eu)
             if (oldGift.status === 'available' && newGift.status === 'reserved' && newGift.reservedBy !== user.name) {
               addToast('info', `Olha só! Alguém acabou de garantir: ${newGift.name}`);
-            }
-            // Item voltou (e não fui eu que soltei)
-            if (oldGift.status === 'reserved' && newGift.status === 'available') {
-               if (oldGift.reservedBy !== user.name) {
-                  addToast('success', `Oba! ${newGift.name} voltou para a lista!`);
-               }
             }
           }
         });
@@ -148,21 +139,30 @@ const App: React.FC = () => {
       localStorage.setItem('housewarming_gifts', JSON.stringify(data));
     } catch (error) {
       console.error("Erro ao sincronizar:", error);
+    } finally {
+      // Se for o primeiro carregamento, libera a animação de intro
+      if (isFirstLoad) {
+        // Pequeno delay artificial para garantir que a animação não seja "piscada" se a net for muito rápida
+        setTimeout(() => setIsAppReady(true), 1500); 
+      }
     }
   };
 
   useEffect(() => {
+    // Carrega dados do LocalStorage primeiro para Paint rápido
     const savedGifts = localStorage.getItem('housewarming_gifts');
     if (savedGifts) {
       const parsed = JSON.parse(savedGifts);
       setGifts(parsed);
       prevGiftsRef.current = parsed;
     }
-    refreshGifts();
+
+    // Busca dados frescos (Isso vai destravar a Intro)
+    refreshGifts(true);
     
-    const interval = setInterval(refreshGifts, 10000); 
+    const interval = setInterval(() => refreshGifts(false), 10000); 
     return () => clearInterval(interval);
-  }, [user]);
+  }, []);
 
   const handleOnboarding = (name: string) => {
     const newUser: User = {
@@ -173,16 +173,11 @@ const App: React.FC = () => {
   };
 
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    // 1. Liga o Modal de Processamento
     setIsProcessing(true);
     
     const action = status === 'reserved' ? 'claim' : 'unclaim';
-    
-    // UI otimista
     const updatedGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
     setGifts(updatedGifts);
-
-    // Encontra o presente atualizado para usar no modal
     const targetGift = updatedGifts.find(g => g.id === giftId);
 
     try {
@@ -192,16 +187,12 @@ const App: React.FC = () => {
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
       
-      // Pequeno delay artificial para garantir que o usuário veja que algo processou
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // 2. Desliga o Modal de Processamento
       setIsProcessing(false);
       
-      // 3. Se for reserva, ABRE O MODAL DE SUCESSO (Celebração)
       if (status === 'reserved' && targetGift) {
         setSuccessGift(targetGift);
-        // Dispara confetes
         if (window.confetti) {
           window.confetti({
             particleCount: 150,
@@ -212,8 +203,7 @@ const App: React.FC = () => {
         }
       }
       
-      // Atualiza backend real
-      await refreshGifts();
+      await refreshGifts(false);
 
     } catch (e) {
       setIsProcessing(false);
@@ -240,7 +230,7 @@ const App: React.FC = () => {
           urls: finalGift.shopeeUrl
         })
       });
-      setTimeout(refreshGifts, 1000); 
+      setTimeout(() => refreshGifts(false), 1000); 
     } catch (e) {
       console.error(e);
     } finally {
@@ -277,16 +267,11 @@ const App: React.FC = () => {
       
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      {/* MODAL DE PROCESSAMENTO */}
       <ProcessingModal 
         isOpen={isProcessing} 
-        message={
-           toasts.length > 0 ? "Atualizando a lista..." : 
-           "Anotando seu nome na lista oficial..."
-        } 
+        message={toasts.length > 0 ? "Atualizando..." : undefined} 
       />
 
-      {/* MODAL DE SUCESSO (CELEBRAÇÃO) */}
       <SuccessModal 
         isOpen={!!successGift} 
         gift={successGift} 
@@ -307,9 +292,11 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* A Intro agora recebe o sinal de isAppReady */}
       {showIntro && (
         <IntroAnimation 
           mode={introMode} 
+          allowExit={isAppReady}
           onComplete={handleIntroComplete} 
         />
       )}
