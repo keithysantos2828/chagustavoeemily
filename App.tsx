@@ -123,12 +123,22 @@ const App: React.FC = () => {
       const response = await fetch(SHEET_SCRIPT_URL);
       const data = await response.json();
       
+      // Lógica de Notificações em Tempo Real
       if (prevGiftsRef.current.length > 0 && user && !isFirstLoad) {
         data.forEach((newGift: Gift) => {
           const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
+          
           if (oldGift) {
+            // CENÁRIO 1: Alguém (não eu) reservou um item que estava livre
             if (oldGift.status === 'available' && newGift.status === 'reserved' && newGift.reservedBy !== user.name) {
-              addToast('info', `Olha só! Alguém acabou de garantir: ${newGift.name}`);
+              const giverName = newGift.reservedBy ? newGift.reservedBy.split(' ')[0] : 'Alguém';
+              addToast('info', `Que amor! ${giverName} acabou de escolher: ${newGift.name} ❤️`);
+            }
+
+            // CENÁRIO 2: Um item voltou para a lista (estava reservado por outro e ficou available)
+            // Filtramos para não notificar se fui EU que soltei o item (o modal já dá feedback visual)
+            if (oldGift.status === 'reserved' && newGift.status === 'available' && oldGift.reservedBy !== user.name) {
+               addToast('warning', `Oportunidade! ${newGift.name} voltou para a lista! 🏃💨`);
             }
           }
         });
