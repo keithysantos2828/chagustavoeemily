@@ -71,23 +71,31 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
           onError={() => setImageStatus('error')}
           className={`w-full h-full object-cover transition-all duration-700 ease-out 
             ${imageStatus === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'} 
-            ${isReserved ? 'grayscale opacity-50' : ''} 
+            ${isReserved ? 'grayscale opacity-60 mix-blend-multiply' : ''} 
             ${!isReserved ? 'md:group-hover:scale-110' : ''}
           `} 
         />
       )}
       
+      {/* SELO DE RESERVADO (VISUAL CARIMBO) */}
       {isReserved && !isMine && (
-        <div className="absolute inset-0 bg-[#354F52]/10 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-500 z-20">
-          <div className="bg-stone-100/90 text-stone-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 border border-stone-200">
-            <IconCheck className="w-3 h-3" />
-            Já Ganharam
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="
+            border-4 border-stone-400 text-stone-400 
+            px-4 py-2 rounded-lg 
+            font-black text-xl uppercase tracking-widest 
+            rotate-[-15deg] opacity-80 mix-blend-multiply
+            animate-in zoom-in-50 duration-300
+            mask-grunge
+          ">
+            JÁ GANHARAM
           </div>
         </div>
       )}
 
+      {/* SELO SE FOR MEU */}
       {isReserved && isMine && (
-        <div className="absolute inset-0 bg-[#52796F]/10 flex items-center justify-center animate-in fade-in duration-500 z-20">
+        <div className="absolute inset-0 bg-[#52796F]/20 flex items-center justify-center animate-in fade-in duration-500 z-20">
           <div className="bg-[#FDFCF8] text-[#52796F] px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 border border-[#52796F]/20 transform scale-110">
             <IconGift className="w-4 h-4 text-[#B07D62]" />
             Você escolheu este! ❤️
@@ -114,7 +122,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
         navigator.vibrate(10);
       }
     } catch (e) {
-      // Ignore unsupported operation
+      // Ignore
     }
   };
 
@@ -150,8 +158,15 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     }
 
     result = [...result].sort((a, b) => {
+      // Itens disponíveis primeiro
       if (a.status === 'available' && b.status !== 'available') return -1;
       if (a.status !== 'available' && b.status === 'available') return 1;
+      
+      // Meus itens primeiro entre os reservados
+      if (currentUser) {
+        if (a.reservedBy === currentUser.name && b.reservedBy !== currentUser.name) return -1;
+        if (a.reservedBy !== currentUser.name && b.reservedBy === currentUser.name) return 1;
+      }
 
       const priceA = a.priceEstimate || 0;
       const priceB = b.priceEstimate || 0;
@@ -159,7 +174,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
     });
     
     return result;
-  }, [gifts, activeTab, showAvailableOnly, searchTerm, priceRange, sortOrder]);
+  }, [gifts, activeTab, showAvailableOnly, searchTerm, priceRange, sortOrder, currentUser]);
 
   if (gifts.length === 0) {
     return (
@@ -177,7 +192,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
   return (
     <div className="space-y-6 md:space-y-10 relative">
       
-      {/* STICKY HEADER FIXED: top-0 z-50 with proper background */}
+      {/* STICKY HEADER FIXED */}
       <div className="sticky top-0 z-50 pt-2 -mx-4 px-4 bg-[#F8F7F2]/95 backdrop-blur-xl transition-all shadow-sm border-b border-[#52796F]/5">
         <div className="max-w-6xl mx-auto pb-2">
           
@@ -222,7 +237,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
               {categories.map(cat => (
                 <button
                   key={cat}
-                  onClick={() => { setActiveTab(cat); setSearchTerm(''); }}
+                  onClick={() => { vibrate(); setActiveTab(cat); setSearchTerm(''); }}
                   className={`whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 ${
                     activeTab === cat && !searchTerm 
                       ? 'bg-[#B07D62] text-white shadow-md' 
@@ -322,9 +337,9 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                 active:scale-[0.98] transition-transform duration-100 md:active:scale-100
                 md:hover:shadow-2xl md:hover:-translate-y-2 md:transition-all md:duration-500
                 ${isMine 
-                   ? 'border-[#52796F] ring-1 ring-[#52796F]/20' // Destaque se for meu
+                   ? 'border-[#52796F] ring-1 ring-[#52796F]/20' 
                    : isReserved 
-                     ? 'border-transparent opacity-80 bg-stone-50/50' // Mais apagado se for de outro
+                     ? 'border-transparent opacity-90 bg-stone-50' 
                      : 'border-[#52796F]/5'
                 }
               `}
@@ -398,7 +413,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                        ) : (
                          <>
                            <IconCheck className="w-3 h-3" />
-                           Já Presenteado
+                           Item já presenteado
                          </>
                        )}
                      </p>

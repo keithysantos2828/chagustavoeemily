@@ -17,29 +17,36 @@ import { IconDirection, IconMapPin } from './components/Icons';
 import MusicPlayer from './components/MusicPlayer';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import ProcessingModal from './components/ProcessingModal';
+import SuccessModal from './components/SuccessModal';
+
+// Declaração para confetes
+declare global {
+  interface Window {
+    confetti: any;
+  }
+}
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
   const [loading, setLoading] = useState(false); // Loading inicial
-  const [isProcessing, setIsProcessing] = useState(false); // Loading de Ação (Reserva/Cancelamento)
+  const [isProcessing, setIsProcessing] = useState(false); // Loading de Ação
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
-  // Ref para guardar o estado anterior dos presentes e comparar mudanças
+  // Estado para o Modal de Sucesso (Separado do Alert comum)
+  const [successGift, setSuccessGift] = useState<Gift | null>(null);
+  
+  // Ref para guardar o estado anterior dos presentes
   const prevGiftsRef = useRef<Gift[]>([]);
 
-  // Estado para TESTES: Simular que hoje é o dia do evento
-  const [isSimulatingEventDay, setIsSimulatingEventDay] = useState(false);
-
-  // Verifica se é o dia do evento
+  // Verifica se é o dia do evento (Lógica Real Apenas)
   const isEventDay = React.useMemo(() => {
-    if (isSimulatingEventDay) return true;
     const now = new Date();
     return now.getDate() === EVENT_DATE.getDate() && 
            now.getMonth() === EVENT_DATE.getMonth() && 
            now.getFullYear() === EVENT_DATE.getFullYear();
-  }, [isSimulatingEventDay]);
+  }, []);
   
   const [introMode] = useState<'default' | 'returning'>(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('housewarming_user_name')) {
@@ -108,23 +115,26 @@ const App: React.FC = () => {
 
   const refreshGifts = async () => {
     if (!SHEET_SCRIPT_URL) return;
+    
+    // Smart Polling: Não atualiza se a aba estiver oculta para economizar bateria/dados
+    if (document.hidden) return;
+
     try {
       const response = await fetch(SHEET_SCRIPT_URL);
       const data = await response.json();
       
-      // Lógica de Notificação em Tempo Real (Só notifica o que não fui eu)
+      // Lógica de Notificação em Tempo Real
       if (prevGiftsRef.current.length > 0 && user) {
         data.forEach((newGift: Gift) => {
           const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
           
           if (oldGift) {
-            // Caso 1: Alguém reservou um item (e não fui eu)
+            // Alguém reservou (e não fui eu)
             if (oldGift.status === 'available' && newGift.status === 'reserved' && newGift.reservedBy !== user.name) {
               addToast('info', `Olha só! Alguém acabou de garantir: ${newGift.name}`);
             }
-            // Caso 2: Um item voltou para a lista (e não fui eu que soltei)
+            // Item voltou (e não fui eu que soltei)
             if (oldGift.status === 'reserved' && newGift.status === 'available') {
-               // Só avisa se quem estava segurando ANTES não era eu
                if (oldGift.reservedBy !== user.name) {
                   addToast('success', `Oba! ${newGift.name} voltou para a lista!`);
                }
@@ -150,9 +160,9 @@ const App: React.FC = () => {
     }
     refreshGifts();
     
-    const interval = setInterval(refreshGifts, 10000); // Polling mais rápido (10s) para sensação real-time
+    const interval = setInterval(refreshGifts, 10000); 
     return () => clearInterval(interval);
-  }, [user]); // Adicionado user como dependência para não notificar a si mesmo erradamente
+  }, [user]);
 
   const handleOnboarding = (name: string) => {
     const newUser: User = {
@@ -163,13 +173,17 @@ const App: React.FC = () => {
   };
 
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    // Liga o Modal de Processamento
+    // 1. Liga o Modal de Processamento
     setIsProcessing(true);
     
     const action = status === 'reserved' ? 'claim' : 'unclaim';
     
-    // UI otimista (atualiza localmente enquanto envia)
-    setGifts(prev => prev.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g));
+    // UI otimista
+    const updatedGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
+    setGifts(updatedGifts);
+
+    // Encontra o presente atualizado para usar no modal
+    const targetGift = updatedGifts.find(g => g.id === giftId);
 
     try {
       await fetch(SHEET_SCRIPT_URL, {
@@ -178,21 +192,35 @@ const App: React.FC = () => {
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
       
-      // Se for reserva, mostra sucesso
-      if (status === 'reserved') {
-        showAlert('success', 'Presente Reservado!', 'Obrigado por confirmar! O item foi marcado com seu nome.', () => {});
+      // Pequeno delay artificial para garantir que o usuário veja que algo processou
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 2. Desliga o Modal de Processamento
+      setIsProcessing(false);
+      
+      // 3. Se for reserva, ABRE O MODAL DE SUCESSO (Celebração)
+      if (status === 'reserved' && targetGift) {
+        setSuccessGift(targetGift);
+        // Dispara confetes
+        if (window.confetti) {
+          window.confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#B07D62', '#52796F', '#F8F7F2', '#FFD700']
+          });
+        }
       }
       
-      // Atualiza os dados reais
+      // Atualiza backend real
       await refreshGifts();
+
     } catch (e) {
+      setIsProcessing(false);
       console.error("Erro ao salvar:", e);
       showAlert('warning', 'Ops!', 'Houve um erro de conexão. Verifique se o item foi atualizado.', () => {});
-    } finally {
-      // Desliga o Modal de Processamento
-      setIsProcessing(false);
     }
-  }, []);
+  }, [gifts]);
 
   const adminUpdateGift = async (giftId: string, updates: Partial<Gift>) => {
     setLoading(true);
@@ -247,10 +275,9 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen text-[#3D403D] pb-10 transition-colors duration-1000 relative ${isEventDay ? 'bg-[#E6E4DD]' : 'bg-[#F8F7F2]'}`}>
       
-      {/* TOAST CONTAINER GLOBAL */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      {/* MODAL DE PROCESSAMENTO (RESISTENTE A SAÍDAS) */}
+      {/* MODAL DE PROCESSAMENTO */}
       <ProcessingModal 
         isOpen={isProcessing} 
         message={
@@ -259,10 +286,15 @@ const App: React.FC = () => {
         } 
       />
 
-      {/* MUSIC PLAYER GLOBAL */}
+      {/* MODAL DE SUCESSO (CELEBRAÇÃO) */}
+      <SuccessModal 
+        isOpen={!!successGift} 
+        gift={successGift} 
+        onClose={() => setSuccessGift(null)} 
+      />
+
       {user && <MusicPlayer />}
 
-      {/* BACKGROUND DE MAPA REAL (IFRAME) NO DIA DO EVENTO */}
       {isEventDay && (
         <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 animate-in fade-in">
            <iframe 
@@ -275,7 +307,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* INTRODUÇÃO */}
       {showIntro && (
         <IntroAnimation 
           mode={introMode} 
@@ -285,7 +316,6 @@ const App: React.FC = () => {
 
       <CustomAlert {...alertConfig} />
       
-      {/* Loading de Inicialização Apenas */}
       {loading && (
         <div className="fixed top-0 left-0 w-full h-1 bg-[#52796F] z-[999] overflow-hidden">
           <div className="h-full bg-green-300 animate-[loading_1.5s_infinite_linear] w-[40%]"></div>
@@ -313,12 +343,10 @@ const App: React.FC = () => {
           />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
-            {/* Header com padding inferior reduzido para conectar com a lista */}
             <div className="mb-4">
                <Header user={user} />
             </div>
             
-            {/* ALERT DE DIA DO EVENTO */}
             {isEventDay && (
               <div className="animate-in zoom-in-95 duration-700 mb-8 mt-4">
                 <button 
@@ -352,8 +380,6 @@ const App: React.FC = () => {
             <PresenceList gifts={gifts} currentUser={user} />
 
             <main className="mt-8 md:mt-16">
-              
-              {/* Título Conectado Visualmente à Lista (Bloco Único) */}
               <div className="bg-[#FDFCF8] rounded-t-[2.5rem] pt-10 px-6 md:px-10 pb-6 border border-[#52796F]/5 border-b-0 shadow-sm relative z-10">
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                   <div className={`text-center md:text-left w-full md:w-auto ${isEventDay ? 'bg-[#F8F7F2]/90 p-6 rounded-3xl shadow-lg backdrop-blur-md border border-[#52796F]/10' : ''}`}>
@@ -382,7 +408,6 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Fundo Branco contínuo para a lista */}
               <div className="bg-[#FDFCF8] px-4 md:px-8 pb-10 rounded-b-[2.5rem] border border-t-0 border-[#52796F]/5 shadow-sm mb-12">
                 {showAdmin ? (
                   <AdminPanel 
@@ -395,7 +420,6 @@ const App: React.FC = () => {
                     gifts={gifts} 
                     currentUser={user}
                     onReserve={(gift) => {
-                      // NOVA CONFIRMAÇÃO
                       showAlert(
                           'confirm',
                           `Reservar ${gift.name}?`,
@@ -414,19 +438,6 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* --- BOTÃO DE TESTE (SIMULAÇÃO) --- */}
-      <div className="fixed bottom-2 left-2 z-[9999] opacity-30 hover:opacity-100 transition-opacity">
-         <button 
-           onClick={() => setIsSimulatingEventDay(!isSimulatingEventDay)}
-           className={`
-             px-3 py-1.5 rounded-full text-[10px] font-mono flex items-center gap-2 border shadow-lg transition-all
-             ${isSimulatingEventDay ? 'bg-red-500 text-white border-red-400' : 'bg-black/80 text-white border-white/20'}
-           `}
-         >
-           {isSimulatingEventDay ? '🔴 Parar Simulação' : '🧪 Testar Dia do Evento'}
-         </button>
-      </div>
     </div>
   );
 };

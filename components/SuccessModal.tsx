@@ -12,8 +12,10 @@ interface SuccessModalProps {
 const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, gift, onClose }) => {
   useEffect(() => {
     if (isOpen) {
-      // Vibração forte de sucesso
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      // Vibração forte de sucesso (Haptic Feedback)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
     }
   }, [isOpen]);
 
@@ -31,8 +33,8 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, gift, onClose }) =>
         
         {/* Efeitos de Fundo */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-           <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[60%] bg-[#52796F]/10 rounded-full blur-3xl"></div>
-           <div className="absolute bottom-[-20%] right-[-20%] w-[140%] h-[60%] bg-[#B07D62]/10 rounded-full blur-3xl"></div>
+           <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[60%] bg-[#52796F]/10 rounded-full blur-3xl animate-pulse"></div>
+           <div className="absolute bottom-[-20%] right-[-20%] w-[140%] h-[60%] bg-[#B07D62]/10 rounded-full blur-3xl animate-pulse delay-700"></div>
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
@@ -42,7 +44,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, gift, onClose }) =>
              <div className="w-28 h-28 rounded-full bg-[#52796F] flex items-center justify-center shadow-lg animate-bounce-slow">
                 <IconGift className="w-14 h-14 text-white" />
              </div>
-             <div className="absolute -bottom-2 -right-2 bg-[#B07D62] p-2 rounded-full border-4 border-[#FDFCF8]">
+             <div className="absolute -bottom-2 -right-2 bg-[#B07D62] p-2 rounded-full border-4 border-[#FDFCF8] animate-in zoom-in duration-300 delay-300">
                 <IconHeart className="w-6 h-6 text-white" />
              </div>
           </div>
