@@ -12,7 +12,7 @@ import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
 import IntroAnimation from './components/IntroAnimation';
-import AIChat from './components/AIChat';
+import DeliveryGuide from './components/DeliveryGuide';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -209,18 +209,13 @@ const App: React.FC = () => {
             }} 
           />
 
-          <AIChat 
-            gifts={gifts} 
-            user={user} 
-            onReserve={(gift) => updateGiftStatus(gift.id, 'reserved', user.name)}
-            onRelease={(gift) => updateGiftStatus(gift.id, 'available')}
-          />
-
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
             <Header user={user} />
             
-            <div className="my-10 md:my-16">
+            <div className="my-10 md:my-16 space-y-8">
               <Countdown targetDate={EVENT_DATE} />
+              {/* GUIA DE ENTREGA (Visível apenas na reta final) */}
+              <DeliveryGuide targetDate={EVENT_DATE} />
             </div>
 
             <PresenceList gifts={gifts} currentUser={user} />

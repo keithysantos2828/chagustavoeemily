@@ -51,7 +51,7 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
       setMessages([
         { 
           role: 'model', 
-          text: `Oie, **${user.name.split(' ')[0]}**! Tudo bem? \n\nEu sou a **Lia**, amiga virtual da Emily e do Gustavo. Estou aqui pra te ajudar a escolher um presente bacana pro Chá de Casa Nova! 🏡✨\n\nMe diz, o que você pensou em dar?` 
+          text: `Oie, **${user.name.split(' ')[0]}**! Tudo bem? \n\nEu sou a **Lia**, a IA ajudante da Emily e do Gustavo. \n\n😱 **Menina(o), faltam só 6 dias!** O tempo voou! Já temos 8 pessoas incríveis que garantiram presentes. Bora escolher o seu antes que acabe as melhores opções? \n\nComo posso te ajudar hoje?` 
         }
       ]);
     }
@@ -108,30 +108,36 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
 
       // 2. Contexto Rico do Evento
       const eventContext = `
-        **CONTEXTO DO EVENTO:**
+        **CONTEXTO DO EVENTO (URGENTE):**
         - **Noivos:** Emily e Gustavo.
         - **Evento:** Chá de Casa Nova.
         - **Data:** 15 de Fevereiro de 2026 às 15:00.
+        - **Status:** RETA FINAL! Faltam apenas 6 dias.
+        - **Social Proof:** Já temos 9 presentes garantidos por 8 convidados.
         - **Local:** Sede Campestre Sintracon (Rua Ângela Perin D'agostin - Embu, Colombo - PR).
-        - **Entrega:** Faltam poucos dias. Sugira levar no dia da festa. Não comprar online com prazo longo.
+        
+        **ALERTA DE LOGÍSTICA (IMPORTANTE):**
+        - Como faltam 6 dias, **DESENCORAJE** compras online (Shopee/Mercado Livre) a menos que seja entrega Full/Rápida.
+        - **SUGIRA FORTEMENTE:** Comprar em loja física (Havan, Magalu, lojas de bairro) ou levar o presente no dia da festa.
+        - Se o usuário selecionar um link da Shopee, avise: "Cuidado com o prazo de entrega, hein? Talvez seja melhor garantir na loja física."
         
         **USUÁRIO ATUAL:**
         - Nome: ${user.name}
       `;
 
       const systemInstruction = `
-        Você é a **Lia**, uma assistente de casamento virtual super carismática.
+        Você é a **Lia**, uma assistente de casamento virtual super carismática e levemente ansiosa com a data chegando.
         
         ${eventContext}
         
         **SUA PERSONALIDADE:**
-        - **Tom:** Caloroso, usa emojis, fala como uma brasileira animada.
+        - **Tom:** Caloroso, usa emojis, fala como uma brasileira animada. Usa expressões como "Menina do céu", "Corre que dá tempo", "Que arraso".
         - **Formatacão:** USE MARKDOWN! Use **negrito** para destacar nomes de presentes e preços. Use listas (bullet points) para mostrar opções.
         
         **REGRAS DE OURO:**
         1. **Não liste tudo:** Se o usuário pedir "o que tem?", NUNCA mostre a lista toda. Mostre apenas o TOP 3 ou 5 itens mais legais/baratos e pergunte se quer ver mais.
-        2. **Disponibilidade:** Se o usuário pedir algo que não existe ou já foi reservado (verifique via tool), diga "Poxa, esse já levaram!" e sugira algo similar imediatamente.
-        3. **Reserva:** Antes de chamar 'reserveGift', confirme se é isso mesmo: "Posso reservar o [Item] pra você então?". Se o usuário disser "sim", "quero", "pode ser", aí sim chame a tool.
+        2. **Disponibilidade:** Se o usuário pedir algo que não existe ou já foi reservado (verifique via tool), diga "Poxa, esse já levaram! O pessoal tá rápido!" e sugira algo similar imediatamente.
+        3. **Reserva:** Antes de chamar 'reserveGift', confirme se é isso mesmo: "Posso reservar o [Item] pra você então? Lembra de ver se consegue levar no dia!". Se o usuário disser "sim", "quero", "pode ser", aí sim chame a tool.
         4. **Preço:** Sempre mostre o preço estimado junto com o nome do item. Ex: "- **Batedeira** (R$ 190,00)"
       `;
 
@@ -142,7 +148,6 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
       }));
 
       // Usando gemini-2.0-flash-exp para garantir compatibilidade com as funcionalidades mais recentes
-      // Se sua chave suporta gemini-3/2.5, este modelo deve funcionar perfeitamente.
       const result = await client.models.generateContent({
         model: 'gemini-2.0-flash-exp', 
         config: {
@@ -187,7 +192,7 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
                   parts: [{
                     functionResponse: {
                       name: fnName,
-                      response: { result: availableStr || "Lista vazia." }
+                      response: { result: availableStr || "Lista vazia. Tudo foi reservado! Uau!" }
                     }
                   }]
                 }
@@ -203,9 +208,9 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
 
              if (giftToReserve) {
                onReserve(giftToReserve);
-               finalText = `Aêê! 🎉 Reservei **${giftToReserve.name}** pra você! \n\nLembre de levar no dia **15/02**. Obrigada pelo carinho com a Emily e o Gustavo! ❤️`;
+               finalText = `Aêê! 🎉 Reservei **${giftToReserve.name}** pra você! \n\n⚠️ **Dica da Lia:** Como faltam só 6 dias, tenta comprar em loja física pra não ter perigo de atrasar, tá? Leva no dia 15/02 na festa. Obrigada!! ❤️`;
              } else {
-               finalText = `Ihh, fui tentar pegar **${fnArgs.giftName}** mas parece que alguém foi mais rápido ou não entendi o nome direito. 😅 \n\nQuer que eu liste o que sobrou nessa categoria?`;
+               finalText = `Ihh, fui tentar pegar **${fnArgs.giftName}** mas parece que alguém foi mais rápido (o povo tá ligeiro!). 😅 \n\nQuer que eu liste o que sobrou nessa categoria?`;
              }
 
           } else if (fnName === 'cancelReservation') {
@@ -218,7 +223,7 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
 
              if (giftToRelease && onRelease) {
                 onRelease(giftToRelease);
-                finalText = `Tranquilo! Liberei **${giftToRelease.name}** da sua lista. Ele voltou pra prateleira virtual. Precisa de mais alguma coisa?`;
+                finalText = `Tranquilo! Liberei **${giftToRelease.name}** da sua lista. Ele voltou pra prateleira virtual. Se mudar de ideia, corre que faltam 6 dias!`;
              } else {
                 finalText = `Ué, não achei esse item reservado no seu nome. Tem certeza que reservou comigo? 🤔`;
              }
@@ -227,7 +232,7 @@ const AIChat: React.FC<AIChatProps> = ({ gifts, user, onReserve, onRelease }) =>
              const myGifts = gifts.filter(g => g.status === 'reserved' && g.reservedBy === user.name);
              if (myGifts.length > 0) {
                 const list = myGifts.map(g => `- **${g.name}**`).join('\n');
-                finalText = `Você já garantiu:\n${list}\n\nVai ser um presentão! 🎁`;
+                finalText = `Você já garantiu:\n${list}\n\nVai ser um presentão! 🎁 Lembra de levar no dia, tá?`;
              } else {
                 finalText = "Por enquanto você não reservou nada. Bora escolher algo? Tem coisas baratinhas e coisas chiques! 😄";
              }

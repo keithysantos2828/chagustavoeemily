@@ -49,11 +49,7 @@ const DeliveryGuide: React.FC<DeliveryGuideProps> = ({ targetDate }) => {
           <IconGift className="w-32 h-32" />
         </div>
 
-        {isFinalWeek && (
-           <div className="absolute top-0 left-0 w-full h-1 bg-white/20">
-             <div className="h-full bg-white/40 animate-[loading_2s_infinite_linear]"></div>
-           </div>
-        )}
+        {/* Removida a barra de progresso animada que parecia "loading" */}
 
         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
           
@@ -70,7 +66,8 @@ const DeliveryGuide: React.FC<DeliveryGuideProps> = ({ targetDate }) => {
 
           <div className="text-center md:text-left flex-grow">
             <h3 className={`font-cursive text-2xl md:text-3xl mb-2 leading-tight ${isFinalWeek ? 'text-white' : 'text-[#354F52]'}`}>
-              {isSuperUrgent ? 'Está chegando a hora!' : isFinalWeek ? 'Reta Final: Faltam 7 dias!' : 'Como entregar o presente?'}
+              {/* Texto Dinâmico Corrigido: Usa {daysLeft} em vez de número fixo */}
+              {isSuperUrgent ? 'Está chegando a hora!' : isFinalWeek ? `Reta Final: Faltam ${daysLeft} dias!` : 'Como entregar o presente?'}
             </h3>
             
             <p className={`text-sm md:text-base leading-relaxed ${isFinalWeek ? 'text-white/90' : 'text-[#52796F]'}`}>
