@@ -16,12 +16,14 @@ import DeliveryGuide from './components/DeliveryGuide';
 import { IconDirection, IconMapPin } from './components/Icons';
 import MusicPlayer from './components/MusicPlayer';
 import { ToastContainer, ToastMessage } from './components/Toast';
+import ProcessingModal from './components/ProcessingModal';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading inicial
+  const [isProcessing, setIsProcessing] = useState(false); // Loading de Ação (Reserva/Cancelamento)
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
   // Ref para guardar o estado anterior dos presentes e comparar mudanças
@@ -110,7 +112,7 @@ const App: React.FC = () => {
       const response = await fetch(SHEET_SCRIPT_URL);
       const data = await response.json();
       
-      // Lógica de Notificação em Tempo Real
+      // Lógica de Notificação em Tempo Real (Só notifica o que não fui eu)
       if (prevGiftsRef.current.length > 0 && user) {
         data.forEach((newGift: Gift) => {
           const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
@@ -120,9 +122,12 @@ const App: React.FC = () => {
             if (oldGift.status === 'available' && newGift.status === 'reserved' && newGift.reservedBy !== user.name) {
               addToast('info', `Olha só! Alguém acabou de garantir: ${newGift.name}`);
             }
-            // Caso 2: Um item voltou para a lista
+            // Caso 2: Um item voltou para a lista (e não fui eu que soltei)
             if (oldGift.status === 'reserved' && newGift.status === 'available') {
-              addToast('success', `Oba! ${newGift.name} voltou para a lista!`);
+               // Só avisa se quem estava segurando ANTES não era eu
+               if (oldGift.reservedBy !== user.name) {
+                  addToast('success', `Oba! ${newGift.name} voltou para a lista!`);
+               }
             }
           }
         });
@@ -158,9 +163,12 @@ const App: React.FC = () => {
   };
 
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    setLoading(true);
+    // Liga o Modal de Processamento
+    setIsProcessing(true);
+    
     const action = status === 'reserved' ? 'claim' : 'unclaim';
     
+    // UI otimista (atualiza localmente enquanto envia)
     setGifts(prev => prev.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g));
 
     try {
@@ -170,14 +178,19 @@ const App: React.FC = () => {
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
       
+      // Se for reserva, mostra sucesso
       if (status === 'reserved') {
         showAlert('success', 'Presente Reservado!', 'Obrigado por confirmar! O item foi marcado com seu nome.', () => {});
       }
-      refreshGifts();
+      
+      // Atualiza os dados reais
+      await refreshGifts();
     } catch (e) {
       console.error("Erro ao salvar:", e);
+      showAlert('warning', 'Ops!', 'Houve um erro de conexão. Verifique se o item foi atualizado.', () => {});
     } finally {
-      setLoading(false);
+      // Desliga o Modal de Processamento
+      setIsProcessing(false);
     }
   }, []);
 
@@ -237,6 +250,15 @@ const App: React.FC = () => {
       {/* TOAST CONTAINER GLOBAL */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
+      {/* MODAL DE PROCESSAMENTO (RESISTENTE A SAÍDAS) */}
+      <ProcessingModal 
+        isOpen={isProcessing} 
+        message={
+           toasts.length > 0 ? "Atualizando a lista..." : 
+           "Anotando seu nome na lista oficial..."
+        } 
+      />
+
       {/* MUSIC PLAYER GLOBAL */}
       {user && <MusicPlayer />}
 
@@ -263,6 +285,7 @@ const App: React.FC = () => {
 
       <CustomAlert {...alertConfig} />
       
+      {/* Loading de Inicialização Apenas */}
       {loading && (
         <div className="fixed top-0 left-0 w-full h-1 bg-[#52796F] z-[999] overflow-hidden">
           <div className="h-full bg-green-300 animate-[loading_1.5s_infinite_linear] w-[40%]"></div>
