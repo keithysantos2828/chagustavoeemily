@@ -12,7 +12,6 @@ interface GiftListProps {
   onReserve: (gift: Gift) => void;
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
-  onLinkReturn: (gift: Gift) => void;
 }
 
 // ==========================================
@@ -106,7 +105,7 @@ const IconSearch = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange, onLinkReturn }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
@@ -458,16 +457,6 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                          </>
                        )}
                      </p>
-                      
-                     {/* Botão de Já Comprei (Link Return) para quem reservou */}
-                     {isMine && gift.status === 'reserved' && (
-                        <button
-                          onClick={(e) => { vibrate(); e.stopPropagation(); onLinkReturn(gift); }}
-                          className="mt-2 text-[10px] text-[#B07D62] font-bold underline decoration-dotted uppercase tracking-wider hover:text-[#966b54]"
-                        >
-                          Já comprei este item?
-                        </button>
-                     )}
                    </div>
                 )}
               </div>

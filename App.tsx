@@ -544,15 +544,6 @@ const App: React.FC = () => {
                 );
               }} 
               onShopeeClick={handleShopeeInitiate}
-              onLinkReturn={(gift) => {
-                showAlert(
-                  'confirm',
-                  'Você comprou este presente?',
-                  `Se você finalizou a compra de "${gift.name}" na Shopee, confirme abaixo para reservarmos em seu nome.`,
-                  () => updateGiftStatus(gift.id, 'reserved', user.name),
-                  () => {}
-                );
-              }}
             />
           )}
         </main>
