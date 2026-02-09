@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import useSWR, { mutate } from 'swr';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, Gift } from './types';
-import { INITIAL_GIFTS, ADMIN_NAME, EVENT_DATE, SHEET_SCRIPT_URL } from './constants';
+import { EVENT_DATE, SHEET_SCRIPT_URL, ADMIN_NAME } from './constants';
 import Onboarding from './components/Onboarding';
 import Header from './components/Header';
 import Countdown from './components/Countdown';
@@ -12,146 +11,26 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
-import ProcessingModal from './components/ProcessingModal';
-import { ToastContainer, ToastMessage } from './components/Toast';
-import OfflineIndicator from './components/OfflineIndicator';
-import DeliveryGuide from './components/DeliveryGuide';
-import MusicPlayer from './components/MusicPlayer';
-import SuccessModal from './components/SuccessModal';
-import { IconArrowUp, IconCrown } from './components/Icons';
-
-declare global {
-  interface Window {
-    confetti: any;
-  }
-}
-
-// Estrutura da Fila de Ações Offline
-interface PendingAction {
-  id: string; // ID único da ação (timestamp)
-  giftId: string;
-  status: 'available' | 'reserved';
-  reserverName?: string;
-  timestamp: number;
-}
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import IntroAnimation from './components/IntroAnimation';
+import AIChat from './components/AIChat';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [gifts, setGifts] = useState<Gift[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState("");
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [loading, setLoading] = useState(false);
   
-  // Success Modal State
-  const [successGift, setSuccessGift] = useState<Gift | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  // Offline & Sync States
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingQueue, setPendingQueue] = useState<PendingAction[]>([]);
-  
-  const prevGiftsRef = useRef<Gift[]>([]);
+  // Estado da Intro
+  const [showIntro, setShowIntro] = useState(true);
 
-  // 1. GESTÃO DE REDE E FILA
+  // Bloqueio de Scroll enquanto a intro roda
   useEffect(() => {
-    // Carregar fila salva ao iniciar
-    const savedQueue = localStorage.getItem('housewarming_offline_queue');
-    if (savedQueue) {
-      try {
-        setPendingQueue(JSON.parse(savedQueue));
-      } catch (e) {
-        console.error("Erro ao ler fila offline", e);
-      }
+    if (showIntro) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
-
-    const handleOnline = () => {
-      setIsOnline(true);
-      addToast('info', 'Oba! A internet voltou. Sincronizando...');
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      addToast('error', 'Ops! Conexão perdida. Mas pode continuar usando, salvamos tudo aqui.');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Salvar fila no localStorage sempre que mudar
-  useEffect(() => {
-    localStorage.setItem('housewarming_offline_queue', JSON.stringify(pendingQueue));
-  }, [pendingQueue]);
-
-  // Processador de Fila (Quando Online)
-  useEffect(() => {
-    if (isOnline && pendingQueue.length > 0) {
-      const processQueue = async () => {
-        const actionToProcess = pendingQueue[0]; // Pega o primeiro da fila (FIFO)
-        
-        try {
-          const action = actionToProcess.status === 'reserved' ? 'claim' : 'unclaim';
-          
-          await fetch(SHEET_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ 
-              giftId: actionToProcess.giftId, 
-              action, 
-              guestName: actionToProcess.reserverName 
-            })
-          });
-
-          // Sucesso: Remove da fila
-          setPendingQueue(prev => prev.slice(1));
-          
-          // Se esvaziou a fila
-          if (pendingQueue.length === 1) {
-             addToast('success', 'Tudo sincronizado com sucesso! ✨');
-             mutateGifts(); // Atualiza dados reais
-          }
-
-        } catch (error) {
-          console.error("Erro ao processar fila:", error);
-          // Se der erro de rede real (mesmo estando "online"), espera um pouco antes de tentar de novo
-        }
-      };
-
-      const timer = setTimeout(processQueue, 2000); // Debounce para não floodar
-      return () => clearTimeout(timer);
-    }
-  }, [isOnline, pendingQueue]);
-
-
-  // 2. POLLING ADAPTATIVO
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
-
-  const { data: gifts = [], error, mutate: mutateGifts } = useSWR<Gift[]>(
-    SHEET_SCRIPT_URL, 
-    fetcher, 
-    { 
-      fallbackData: [],
-      // Pausa revalidação se estiver offline ou tiver coisas na fila (para não sobrescrever otimismo)
-      isPaused: () => !isOnline || pendingQueue.length > 0,
-      refreshInterval: isPageVisible ? 10000 : 60000, 
-      revalidateOnFocus: true,
-      dedupingInterval: 2000
-    }
-  );
+  }, [showIntro]);
 
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
@@ -168,15 +47,6 @@ const App: React.FC = () => {
     onConfirm: () => {}
   });
 
-  const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, type, message }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  };
-
   const showAlert = (type: AlertType, title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
     setAlertConfig({
       isOpen: true,
@@ -184,8 +54,8 @@ const App: React.FC = () => {
       title,
       message,
       onConfirm: () => {
-        onConfirm(); 
-        closeAlert(); 
+        onConfirm();
+        closeAlert();
       },
       onCancel: onCancel ? () => {
         onCancel();
@@ -196,44 +66,28 @@ const App: React.FC = () => {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
+  const refreshGifts = async () => {
+    if (!SHEET_SCRIPT_URL) return;
+    try {
+      const response = await fetch(SHEET_SCRIPT_URL);
+      const data = await response.json();
+      setGifts(data);
+      localStorage.setItem('housewarming_gifts', JSON.stringify(data));
+    } catch (error) {
+      console.error("Erro ao sincronizar com Sheets:", error);
+    }
+  };
+
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const savedGifts = localStorage.getItem('housewarming_gifts');
+    if (savedGifts) setGifts(JSON.parse(savedGifts));
+    refreshGifts();
+    
+    const interval = setInterval(refreshGifts, 20000); // Atualiza a cada 20s
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (gifts.length === 0 || !user) return;
-
-    if (prevGiftsRef.current.length === 0) {
-      prevGiftsRef.current = gifts;
-      return;
-    }
-
-    gifts.forEach(newGift => {
-      const oldGift = prevGiftsRef.current.find(g => g.id === newGift.id);
-      if (!oldGift) return;
-
-      if (oldGift.status === 'available' && newGift.status === 'reserved') {
-        if (newGift.reservedBy !== user.name) {
-          addToast('success', `Que amor! Alguém acabou de nos presentear com: ${newGift.name} ❤️`);
-        }
-      }
-
-      if (oldGift.status === 'reserved' && newGift.status === 'available') {
-        addToast('info', `O item ${newGift.name} voltou para a lista.`);
-      }
-    });
-
-    prevGiftsRef.current = gifts;
-  }, [gifts, user]);
-
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
   const handleOnboarding = (name: string) => {
-    localStorage.setItem('housewarming_user_name', name);
     const newUser: User = {
       name,
       isAdmin: name.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
@@ -241,128 +95,33 @@ const App: React.FC = () => {
     setUser(newUser);
   };
 
-  const triggerConfetti = () => {
-    if (window.confetti) {
-      window.confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#B07D62', '#52796F', '#F8F7F2', '#FFD700']
-      });
-    }
-  };
-
-  // 3. ATUALIZAÇÃO ROBUSTA COM SUPORTE OFFLINE
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
-    
-    // 1. Feedback Imediato Otimista (Sempre acontece)
-    const optimisticGifts = gifts.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g);
-    const targetGift = gifts.find(g => g.id === giftId);
-    
-    mutateGifts(optimisticGifts, false); 
-
-    // 2. Verifica se está offline
-    if (!navigator.onLine) {
-       // Adiciona à fila
-       const newAction: PendingAction = {
-         id: Date.now().toString(),
-         giftId,
-         status,
-         reserverName,
-         timestamp: Date.now()
-       };
-       setPendingQueue(prev => [...prev, newAction]);
-       
-       // Feedback específico de offline
-       if (status === 'reserved') {
-          triggerConfetti();
-          // Usa o modal de sucesso mesmo offline
-          if (targetGift) {
-            setSuccessGift({...targetGift, status: 'reserved', reservedBy: reserverName});
-            setShowSuccessModal(true);
-          }
-       } else {
-          addToast('info', 'Alteração salva localmente.');
-       }
-       return; // Para por aqui, não tenta fetch
-    }
-
-    // 3. Se estiver Online, segue fluxo normal
-    setProcessingMessage(status === 'reserved' 
-      ? "Estamos embrulhando seu pedido e anotando seu nome..." 
-      : "Estamos devolvendo o item para a prateleira..."
-    );
-    setIsProcessing(true);
-
+    setLoading(true);
     const action = status === 'reserved' ? 'claim' : 'unclaim';
+    
+    // UI otimista
+    setGifts(prev => prev.map(g => g.id === giftId ? { ...g, status, reservedBy: reserverName } : g));
 
     try {
-      // Envia para o servidor
       await fetch(SHEET_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'no-cors', 
         body: JSON.stringify({ giftId, action, guestName: reserverName })
       });
-
-      // Aguarda a confirmação REAL do servidor
-      const updatedData = await mutateGifts();
       
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // LÓGICA DE CONFIRMAÇÃO
-      if (updatedData) {
-        const confirmedItem = updatedData.find(g => g.id === giftId);
-        
-        if (status === 'reserved') {
-          // Sucesso
-          if (confirmedItem?.status === 'reserved' && confirmedItem?.reservedBy === reserverName) {
-             triggerConfetti();
-             if (confirmedItem) {
-               setSuccessGift(confirmedItem);
-               setShowSuccessModal(true);
-             }
-          } 
-          // Conflito (alguém pegou antes)
-          else {
-             showAlert(
-               'info', 
-               'Poxa! Alguém foi mais rápido.', 
-               `Parece que outra pessoa confirmou o item "${confirmedItem?.name}" segundos antes de você. A lista foi atualizada.`, 
-               () => {}
-             );
-          }
-        } else {
-           addToast('info', 'Tudo bem! O item voltou para a lista.');
-        }
+      if (status === 'reserved') {
+        showAlert('success', 'Presente Reservado!', 'Obrigado por confirmar! O item foi marcado com seu nome.', () => {});
       }
-
+      refreshGifts();
     } catch (e) {
       console.error("Erro ao salvar:", e);
-      // FALLBACK: Se der erro no fetch (net caiu no meio), joga pra fila
-      const newAction: PendingAction = {
-         id: Date.now().toString(),
-         giftId,
-         status,
-         reserverName,
-         timestamp: Date.now()
-       };
-       setPendingQueue(prev => [...prev, newAction]);
-       addToast('warning', 'A internet oscilou, mas salvamos sua ação na fila de envio.');
-      
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
     }
-  }, [gifts, mutateGifts]);
+  }, []);
 
   const adminUpdateGift = async (giftId: string, updates: Partial<Gift>) => {
-    if (!isOnline) {
-      addToast('error', 'Você precisa estar online para editar itens como administrador.');
-      return;
-    }
-    
-    setProcessingMessage("Atualizando as informações do item...");
-    setIsProcessing(true);
-    
+    setLoading(true);
     try {
       const gift = gifts.find(g => g.id === giftId);
       const finalGift = { ...gift, ...updates };
@@ -379,179 +138,131 @@ const App: React.FC = () => {
           urls: finalGift.shopeeUrl
         })
       });
-      
-      await mutateGifts();
-      addToast('success', 'Item atualizado com sucesso!');
+      setTimeout(refreshGifts, 1000); 
     } catch (e) {
       console.error(e);
-      addToast('error', 'Erro ao atualizar item.');
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
     }
   };
 
-  const handleShopeeInitiate = (gift: Gift) => {
+  const handleLinkReturn = (gift: Gift) => {
     if (!user) return;
-    
     showAlert(
       'confirm',
-      'Confirmar Escolha',
-      `Ao clicar em confirmar, vamos marcar "${gift.name}" como seu presente na lista e abrir a loja para você.`,
-      () => {
-        updateGiftStatus(gift.id, 'reserved', user.name);
-        window.open(gift.shopeeUrl, '_blank');
-      },
+      'Você comprou este presente?',
+      `Se você finalizou a compra de "${gift.name}" na Shopee, confirme abaixo para reservarmos em seu nome.`,
+      () => updateGiftStatus(gift.id, 'reserved', user.name),
       () => {}
     );
   };
 
-  if (!user) return <Onboarding onSubmit={handleOnboarding} />;
-
-  // Combina lista real com ações pendentes para mostrar ao usuário o que é dele, mesmo offline
-  const effectiveGifts = gifts.map(g => {
-    const pendingAction = pendingQueue.slice().reverse().find(a => a.giftId === g.id); // Pega a ultima ação para este item
-    if (pendingAction) {
-      return { ...g, status: pendingAction.status, reservedBy: pendingAction.reserverName };
-    }
-    return g;
-  });
-
-  const userReservedGifts = effectiveGifts.filter(g => g.reservedBy === user.name && g.status === 'reserved');
-  const hasItemsInCart = userReservedGifts.length > 0;
+  // Se a Intro ainda está rodando, mostramos ela SOBRE tudo, mas o Onboarding só renderiza se não tiver user
+  // Mas para o efeito "revelar" funcionar, o conteúdo de baixo já precisa estar montado.
+  // Então a estrutura é: App renderiza normal, Intro fica por cima com z-index alto.
 
   return (
-    <div className="min-h-[100dvh] bg-[#F8F7F2] text-[#3D403D] pb-safe-bottom">
+    <div className="min-h-screen bg-[#F8F7F2] text-[#3D403D] overflow-x-hidden pb-10">
+      
+      {/* INTRODUÇÃO CINEMATOGRÁFICA */}
+      {showIntro && (
+        <IntroAnimation onComplete={() => setShowIntro(false)} />
+      )}
+
       <CustomAlert {...alertConfig} />
-      <ProcessingModal isOpen={isProcessing} message={processingMessage} />
       
-      {/* Novo Modal de Sucesso Duolingo Style */}
-      <SuccessModal 
-        isOpen={showSuccessModal} 
-        gift={successGift} 
-        onClose={() => setShowSuccessModal(false)} 
-      />
-
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
-      {/* Indicadores */}
-      <OfflineIndicator isOnline={isOnline} pendingCount={pendingQueue.length} />
-      
-      {/* Music Player */}
-      <MusicPlayer />
-
-      <button
-        onClick={scrollToTop}
-        className={`
-          fixed z-[80] right-4 md:right-8 bg-[#354F52] text-white p-3 md:p-4 rounded-full shadow-xl 
-          transition-all duration-500 hover:bg-[#2A3F41] active:scale-95 border border-white/10
-          flex items-center justify-center
-          ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
-          /* Ajuste para não ficar atrás do cart no mobile */
-          ${hasItemsInCart ? 'bottom-28 md:bottom-32' : 'bottom-6 md:bottom-24 mb-safe'}
-        `}
-        aria-label="Voltar ao topo"
-      >
-        <IconArrowUp className="w-5 h-5 md:w-6 md:h-6" />
-      </button>
-
-      {/* Cart (Bottom Sheet Nativo) */}
-      <Cart 
-        user={user} 
-        reservedGifts={userReservedGifts} 
-        onRelease={(id) => {
-          showAlert(
-            'confirm', 
-            'Remover Presente?', 
-            'O item voltará para a lista e ficará disponível para outros convidados.',
-            () => updateGiftStatus(id, 'available'),
-            () => {}
-          );
-        }} 
-      />
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
-        <Header user={user} />
-        
-        <div className="my-10 md:my-16 space-y-6">
-          <Countdown targetDate={EVENT_DATE} />
-          <DeliveryGuide targetDate={EVENT_DATE} />
+      {loading && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-[#52796F] z-[999] overflow-hidden">
+          <div className="h-full bg-green-300 animate-[loading_1.5s_infinite_linear] w-[40%]"></div>
         </div>
+      )}
 
-        <PresenceList gifts={effectiveGifts} currentUser={user} />
+      {/* Só mostra o onboarding e o resto se o usuário estiver logado OU se estivermos apenas exibindo a home por baixo da intro */}
+      {!user ? (
+         /* Escondemos o onboarding visualmente durante a intro para não vazar, mas ele monta */
+         <div className={showIntro ? 'opacity-0' : 'opacity-100 transition-opacity duration-1000'}>
+            <Onboarding onSubmit={handleOnboarding} />
+         </div>
+      ) : (
+        <div className={`transition-opacity duration-1000 ${showIntro ? 'opacity-0' : 'opacity-100'}`}>
+          <Cart 
+            user={user} 
+            reservedGifts={gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved')} 
+            onRelease={(id) => {
+              showAlert(
+                'confirm', 
+                'Remover Presente?', 
+                'O item voltará para a lista e ficará disponível para outros convidados.',
+                () => updateGiftStatus(id, 'available'),
+                () => {}
+              );
+            }} 
+          />
 
-        <main className="mt-12 md:mt-24 relative">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
-            <div className="text-center md:text-left">
-              <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
-              <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
-                 <span className={`relative flex h-2 w-2 transition-opacity duration-500 ${isProcessing || !isOnline ? 'opacity-100' : 'opacity-0'}`}>
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${!isOnline ? 'bg-rose-400' : 'bg-amber-400'}`}></span>
-                    <span className={`relative inline-flex rounded-full h-2 w-2 ${!isOnline ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
-                  </span>
-                  <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest opacity-60">
-                    {!isOnline ? 'Modo Offline Ativado' : isProcessing ? 'Sincronizando...' : 'Atualizada em tempo real'}
-                  </p>
-              </div>
-            </div>
+          {/* AI Chat Bot Floating */}
+          <AIChat 
+            gifts={gifts} 
+            user={user} 
+            onReserve={(gift) => updateGiftStatus(gift.id, 'reserved', user.name)}
+            onRelease={(gift) => updateGiftStatus(gift.id, 'available')}
+          />
+
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
+            <Header user={user} />
             
-            <div className="flex gap-4 w-full md:w-auto px-4 md:px-0">
-              {user.isAdmin && (
-                <button 
-                  onClick={() => setShowAdmin(!showAdmin)}
-                  className={`
-                    w-full md:w-auto px-6 py-3 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all shadow-xl flex items-center justify-center gap-2 relative group overflow-hidden
-                    ${showAdmin 
-                      ? 'bg-[#52796F] text-white hover:bg-[#354F52]' 
-                      : 'bg-white text-[#B07D62] border-2 border-[#B07D62] hover:bg-[#B07D62] hover:text-white'
-                    }
-                  `}
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    {showAdmin ? (
-                      <>
-                        <IconArrowUp className="w-4 h-4" />
-                        Fechar Painel
-                      </>
-                    ) : (
-                      <>
-                        <IconCrown className="w-4 h-4 animate-pulse" />
-                        Painel da Emily
-                      </>
-                    )}
-                  </span>
-                </button>
-              )}
+            <div className="my-10 md:my-16">
+              <Countdown targetDate={EVENT_DATE} />
             </div>
+
+            <PresenceList gifts={gifts} currentUser={user} />
+
+            <main className="mt-12 md:mt-24">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-6">
+                <div className="text-center md:text-left">
+                  <h2 className="text-3xl md:text-4xl font-cursive text-[#52796F]">Lista de Presentes</h2>
+                  <p className="text-[#84A98C] font-bold text-[10px] uppercase tracking-widest mt-2">
+                    Conectado à planilha oficial • Emily & Gustavo
+                  </p>
+                </div>
+                
+                <div className="flex gap-4 w-full md:w-auto px-4 md:px-0">
+                  {user.isAdmin && (
+                    <button 
+                      onClick={() => setShowAdmin(!showAdmin)}
+                      className="w-full md:w-auto px-6 py-3 bg-[#52796F] text-white rounded-full hover:bg-[#354F52] transition-all shadow-xl font-bold uppercase tracking-widest text-[10px]"
+                    >
+                      {showAdmin ? 'Fechar Painel ADM' : 'Painel da Emily'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {showAdmin ? (
+                <AdminPanel 
+                  gifts={gifts} 
+                  onUpdateGift={adminUpdateGift}
+                  onReset={() => {}} 
+                />
+              ) : (
+                <GiftList 
+                  gifts={gifts} 
+                  currentUser={user}
+                  onReserve={(gift) => updateGiftStatus(gift.id, 'reserved', user.name)} 
+                  onShopeeClick={handleLinkReturn}
+                />
+              )}
+            </main>
+
+            <Footer onShowAlert={showAlert} />
           </div>
-
-          {showAdmin ? (
-            <AdminPanel 
-              gifts={effectiveGifts} 
-              onUpdateGift={adminUpdateGift}
-              onReset={() => {}} 
-            />
-          ) : (
-            <GiftList 
-              gifts={effectiveGifts} 
-              currentUser={user} 
-              onReserve={(gift) => {
-                showAlert(
-                    'confirm',
-                    'Reservar Presente?',
-                    'Você confirma que vai presentear com este item (comprando em outra loja física ou online)?',
-                    () => updateGiftStatus(gift.id, 'reserved', user.name),
-                    () => {}
-                );
-              }} 
-              onShopeeClick={handleShopeeInitiate}
-            />
-          )}
-        </main>
-
-        <Footer onShowAlert={showAlert} />
-        {/* Espaçamento extra no final para scroll não cortar conteúdo em telas com notch */}
-        <div className="h-24 md:h-12 w-full"></div>
-      </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes loading {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(250%); }
+        }
+      `}</style>
     </div>
   );
 };
