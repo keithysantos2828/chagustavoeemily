@@ -40,6 +40,11 @@ const App: React.FC = () => {
     }
   }, [showIntro]);
 
+  // CALLBACK MEMOIZADO: Garante que a função não mude de referência
+  const handleIntroComplete = useCallback(() => {
+    setShowIntro(false);
+  }, []);
+
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     type: AlertType;
@@ -172,7 +177,7 @@ const App: React.FC = () => {
       {showIntro && (
         <IntroAnimation 
           mode={introMode} 
-          onComplete={() => setShowIntro(false)} 
+          onComplete={handleIntroComplete} 
         />
       )}
 

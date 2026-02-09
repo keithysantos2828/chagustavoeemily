@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { IconHeart } from './Icons';
 
 interface IntroAnimationProps {
@@ -8,38 +8,33 @@ interface IntroAnimationProps {
 }
 
 const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete, mode = 'default' }) => {
-  // Stages: 
-  // 0: Init
-  // 1: Draw Key (PULADO SE RETURNING)
-  // 2: Fill Key & Text Fade In (PULADO SE RETURNING)
-  // 3: INSERT Key (PULADO SE RETURNING)
-  // 4: Turn Key (PULADO SE RETURNING)
-  // 5: Light Burst / Text Fade In Returning
-  // 6: Doors Open
-  // 7: Finish
   const [stage, setStage] = useState(0);
+  
+  // O uso de useRef aqui garante que a função mais recente seja chamada
+  // sem precisar reiniciar o useEffect quando o pai (App.tsx) renderizar.
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     let timelines: { ms: number; stage: number }[] = [];
 
     if (mode === 'returning') {
-       // TIMELINE RÁPIDA (Visitante Recorrente) ~3.5s total
-       // Começa direto no Stage 5 (Sem chave, apenas texto e luz)
+       // TIMELINE RÁPIDA
        timelines = [
-         { ms: 100, stage: 5 },  // Exibe texto "Que bom te ver"
-         { ms: 1500, stage: 6 }, // Portas abrem
-         { ms: 3000, stage: 7 }, // Fim
+         { ms: 100, stage: 5 },
+         { ms: 1500, stage: 6 },
+         { ms: 3000, stage: 7 },
        ];
     } else {
-       // TIMELINE COMPLETA (Primeira Visita) ~6.5s total
+       // TIMELINE COMPLETA
        timelines = [
-         { ms: 100, stage: 1 },   // Desenha
-         { ms: 2000, stage: 2 },  // Preenche
-         { ms: 3200, stage: 3 },  // Insere
-         { ms: 3800, stage: 4 },  // Gira
-         { ms: 4600, stage: 5 },  // Luz
-         { ms: 5000, stage: 6 },  // Portas
-         { ms: 6500, stage: 7 },  // Fim
+         { ms: 100, stage: 1 },
+         { ms: 2000, stage: 2 },
+         { ms: 3200, stage: 3 },
+         { ms: 3800, stage: 4 },
+         { ms: 4600, stage: 5 },
+         { ms: 5000, stage: 6 },
+         { ms: 6500, stage: 7 },
        ];
     }
 
@@ -48,12 +43,16 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete, mode = 'def
     timelines.forEach(({ ms, stage: s }) => {
       timers.push(setTimeout(() => {
         setStage(s);
-        if (s === 7) onComplete();
+        if (s === 7) {
+            // Chama a função guardada na referência
+            onCompleteRef.current();
+        }
       }, ms));
     });
 
     return () => timers.forEach(clearTimeout);
-  }, [onComplete, mode]);
+    // REMOVIDO 'onComplete' das dependências para evitar reinício quando o App carrega dados
+  }, [mode]); 
 
   if (stage === 7) return null;
 
