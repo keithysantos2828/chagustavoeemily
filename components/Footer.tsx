@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { IconMapPin, IconCalendar, IconSparkles, IconPhoto, IconDirection } from './Icons';
+import { IconMapPin, IconCalendar, IconSparkles, IconPhoto, IconDirection, IconArrowUp } from './Icons';
 import { AlertType } from './CustomAlert';
 
 interface FooterProps {
@@ -14,9 +15,24 @@ const Footer: React.FC<FooterProps> = () => {
     const destination = encodeURIComponent("Sede Campestre Sintracon Rua Angela Perin Dagostin");
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
   };
+  
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <footer className="mt-20 md:mt-40 pt-12 md:pt-24 border-t border-[#84A98C]/10 px-4">
+    <footer className="mt-20 md:mt-40 pt-12 md:pt-24 border-t border-[#84A98C]/10 px-4 relative">
+      
+      {/* Botão Voltar ao Topo */}
+      <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+        <button 
+          onClick={scrollToTop}
+          className="w-12 h-12 rounded-full bg-[#FDFCF8] shadow-lg border border-[#84A98C]/10 flex items-center justify-center text-[#52796F] hover:scale-110 transition-transform active:scale-90"
+        >
+          <IconArrowUp className="w-5 h-5" />
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-24 items-center">
         <div className="relative order-2 lg:order-1">
           <div className="absolute -top-10 -left-6 md:-top-16 md:-left-16 text-[#B07D62]/5 pointer-events-none">

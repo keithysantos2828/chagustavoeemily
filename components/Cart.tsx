@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Gift, User } from '../types';
 import { IconGift, IconArrowUp, IconArrowRight } from './Icons';
 
@@ -7,12 +7,24 @@ interface CartProps {
   user: User;
   reservedGifts: Gift[];
   onRelease: (id: string) => void;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
+const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Efeito para notificar o pai sempre que o estado interno mudar
+  useEffect(() => {
+    if (onOpenChange) {
+      onOpenChange(isOpen);
+    }
+  }, [isOpen, onOpenChange]);
+
   if (reservedGifts.length === 0) return null;
+
+  const toggleCart = () => {
+    setIsOpen(!isOpen);
+  };
 
   return (
     <>
@@ -20,7 +32,7 @@ const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] md:hidden animate-in fade-in duration-300"
-          onClick={() => setIsOpen(false)}
+          onClick={toggleCart}
         />
       )}
 
@@ -46,13 +58,13 @@ const Cart: React.FC<CartProps> = ({ user, reservedGifts, onRelease }) => {
           {/* Mobile Handle Bar */}
           <div 
             className="absolute top-0 left-0 right-0 h-6 flex justify-center pt-2 md:hidden cursor-pointer"
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={toggleCart}
           >
             <div className="w-12 h-1 bg-white/20 rounded-full" />
           </div>
 
           <div 
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={toggleCart}
             className="p-5 md:p-4 flex items-center justify-between cursor-pointer group active:bg-white/5 transition-colors pt-8 md:pt-4"
           >
             <div className="flex items-center gap-4">

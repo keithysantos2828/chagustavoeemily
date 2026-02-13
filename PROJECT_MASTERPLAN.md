@@ -32,12 +32,20 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 - [x] **Clareza na Ação de Presentear:**
     *   Implementação de 3 fluxos distintos no card do presente: "Comprar na Shopee", "Presentear por Fora" e "Apenas ver".
 - [x] **Limpeza do Backend:** (CORRIGIDO)
-    *   Script `GOOGLE_SCRIPT_CODE.js` atualizado com a **lista REAL de presentes** (Cozinha, Quarto, Banheiro, etc) e a foto correta do Jogo de Panelas.
+    *   Script `GOOGLE_SCRIPT_CODE.js` atualizado com a **lista REAL de presentes**.
 - [x] **Admin de Luxo (Painel da Noiva):**
     *   Redesign completo do painel administrativo.
     *   Correção da funcionalidade de "Baixar Imagem" para Stories usando `html2canvas`.
-- [ ] **Cartão de Visita Digital (SEO & Open Graph):**
-    *   Configurar meta tags para compartilhamento bonito no WhatsApp.
+- [x] **Cartão de Visita Digital (SEO & Open Graph):**
+    *   Meta tags configuradas e validadas no `index.html`.
+- [x] **Refinamento Textual (Humanização):**
+    *   Alertas de confirmação e remoção reescritos para soarem mais acolhedores.
+
+### 🚀 Fase 3: Celebração & Detalhes Finais (PRÓXIMA)
+*O dia da festa se aproxima!*
+
+- [ ] **Modo "Dia do Evento":** Ajustes automáticos no layout para o dia 15/02.
+- [ ] **Galeria de Fotos (Pós-evento):** Previsão para funcionalidade futura.
 
 ---
 
@@ -56,4 +64,4 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 *   **Fundo:** `#F8F7F2` (Sand)
 
 ---
-**Status Atual:** Painel da Emily modernizado e funcionalidade de Stories corrigida.
+**Status Atual:** Fase 2 concluída. Refinando textos e interações para máxima humanização.

@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Gift, User } from '../types';
 import { 
-  IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSortAsc, IconSortDesc, IconFilter, IconArrowUp, IconSearch, IconSparkles, IconX, IconHeart
+  IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSortAsc, IconSortDesc, IconFilter, IconArrowUp, IconSearch, IconSparkles, IconX, IconHeart, IconClock
 } from './Icons';
 
 interface GiftListProps {
@@ -11,6 +11,7 @@ interface GiftListProps {
   onReserve: (gift: Gift) => void;
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
+  isFinalStretch?: boolean;
 }
 
 // ==========================================
@@ -115,7 +116,7 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
   );
 };
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange, isFinalStretch = false }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
@@ -378,28 +379,60 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                       flex flex-col gap-2 
                       md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 md:transition-all md:duration-500 md:ease-out
                     `}>
-                      {hasLink && (
-                        <button 
-                          onClick={(e) => { vibrate(); e.stopPropagation(); onShopeeClick(gift); }}
-                          className="w-full bg-[#B07D62] text-white py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 active:scale-95 hover:bg-[#966b54] transition-all flex items-center justify-center gap-2"
-                        >
-                          <IconShoppingCart className="w-4 h-4" />
-                          Comprar na Shopee
-                        </button>
+                      
+                      {/* LÓGICA DE BOTÕES INVERTIDA PARA RETA FINAL */}
+                      {isFinalStretch ? (
+                        <>
+                           {/* Botão Principal: Levar em Mãos */}
+                           <button 
+                             onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
+                             className="w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                           >
+                             <IconGift className="w-4 h-4" />
+                             Vou levar na festa!
+                           </button>
+
+                           {/* Botão Secundário (Link) com Aviso */}
+                           {hasLink && (
+                             <div className="relative group/tooltip">
+                               <button 
+                                 onClick={(e) => { vibrate(); e.stopPropagation(); onShopeeClick(gift); }}
+                                 className="w-full bg-transparent text-rose-500 border border-rose-200 py-3 md:py-2.5 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 opacity-80 hover:opacity-100"
+                               >
+                                 <IconClock className="w-3.5 h-3.5" />
+                                 Ver Online (Cuidado c/ Prazo)
+                               </button>
+                             </div>
+                           )}
+                        </>
+                      ) : (
+                        <>
+                           {/* Lógica Padrão (Sem Urgência) */}
+                           {hasLink && (
+                             <button 
+                               onClick={(e) => { vibrate(); e.stopPropagation(); onShopeeClick(gift); }}
+                               className="w-full bg-[#B07D62] text-white py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 active:scale-95 hover:bg-[#966b54] transition-all flex items-center justify-center gap-2"
+                             >
+                               <IconShoppingCart className="w-4 h-4" />
+                               Comprar na Shopee
+                             </button>
+                           )}
+
+                           <button 
+                             onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
+                             className={`w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                               hasLink 
+                                 ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
+                                 : 'bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg'
+                             }`}
+                           >
+                             <IconGift className="w-4 h-4" />
+                             {hasLink ? 'Vou comprar em outro lugar' : 'Vou presentear!'}
+                           </button>
+                        </>
                       )}
 
-                      <button 
-                        onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
-                        className={`w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
-                          hasLink 
-                            ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
-                            : 'bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg'
-                        }`}
-                      >
-                        <IconGift className="w-4 h-4" />
-                        {hasLink ? 'Presentear por fora' : 'Quero Presentear'}
-                      </button>
-
+                      {/* Botão de "Apenas Ver" (Comum aos dois modos) */}
                       {hasLink && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); if (gift.shopeeUrl) window.open(gift.shopeeUrl, '_blank'); }}

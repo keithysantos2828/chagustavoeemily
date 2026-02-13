@@ -33,6 +33,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false); // Loading de barra superior
   const [isProcessing, setIsProcessing] = useState(false); // Modal de Processamento de Ação
   
+  // Controle de Interface
+  const [isCartOpen, setIsCartOpen] = useState(false); // Novo estado para controlar visibilidade do GPS
+  
   // Controle de Carregamento Inicial (Splash Screen)
   const [isAppReady, setIsAppReady] = useState(false);
   
@@ -40,11 +43,34 @@ const App: React.FC = () => {
   const [successGift, setSuccessGift] = useState<Gift | null>(null);
   const prevGiftsRef = useRef<Gift[]>([]);
 
-  const isEventDay = React.useMemo(() => {
+  // Lógica de Datas
+  const { isEventDay, isFinalStretch } = React.useMemo(() => {
     const now = new Date();
-    return now.getDate() === EVENT_DATE.getDate() && 
-           now.getMonth() === EVENT_DATE.getMonth() && 
-           now.getFullYear() === EVENT_DATE.getFullYear();
+    // Zera horas para comparação de dias cheios
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const event = new Date(EVENT_DATE.getFullYear(), EVENT_DATE.getMonth(), EVENT_DATE.getDate());
+    
+    const isToday = today.getTime() === event.getTime();
+    
+    // Diferença em dias
+    const diffTime = event.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Reta final: Entre 3 dias e o dia do evento (inclusive)
+    const isStretch = diffDays <= 3 && diffDays >= 0;
+
+    return { isEventDay: isToday, isFinalStretch: isStretch };
+  }, []);
+  
+  // Persistência de Login (Correção)
+  useEffect(() => {
+    const storedName = localStorage.getItem('housewarming_user_name');
+    if (storedName) {
+      setUser({
+        name: storedName,
+        isAdmin: storedName.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
+      });
+    }
   }, []);
   
   const [introMode] = useState<'default' | 'returning'>(() => {
@@ -180,6 +206,8 @@ const App: React.FC = () => {
       isAdmin: name.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
     };
     setUser(newUser);
+    // Salva explicitamente no Onboarding caso não tenha sido salvo antes (redundância de segurança)
+    localStorage.setItem('housewarming_user_name', name);
   };
 
   const updateGiftStatus = useCallback(async (giftId: string, status: 'available' | 'reserved', reserverName?: string) => {
@@ -252,8 +280,8 @@ const App: React.FC = () => {
     if (!user) return;
     showAlert(
       'confirm',
-      'Você comprou este presente?',
-      `Se você finalizou a compra de "${gift.name}" na Shopee, confirme abaixo para reservarmos em seu nome.`,
+      'Tudo certo com a compra?',
+      `Se você já garantiu o(a) "${gift.name}" no site, confirme aqui para avisar a gente! Assim ninguém compra repetido. ❤️`,
       () => updateGiftStatus(gift.id, 'reserved', user.name),
       () => {}
     );
@@ -289,6 +317,36 @@ const App: React.FC = () => {
       />
 
       {user && <MusicPlayer />}
+
+      {/* GPS FLUTUANTE (RETA FINAL) */}
+      {/* Escondemos quando o carrinho está aberto (!isCartOpen) */}
+      {user && isFinalStretch && !showIntro && (
+        <div 
+          className={`
+            fixed bottom-24 left-4 z-[90] md:bottom-8 md:left-8 
+            transition-all duration-300 ease-in-out
+            ${isCartOpen ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}
+          `}
+        >
+           <button 
+             onClick={handleTraceRoute}
+             className="
+                flex items-center gap-3 px-5 py-3.5 
+                bg-gradient-to-r from-[#B07D62] to-[#9c6a50] text-white 
+                rounded-full shadow-[0_8px_25px_-5px_rgba(176,125,98,0.5)] 
+                active:scale-95 transition-all md:hover:scale-105 border-2 border-white/20
+             "
+           >
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                 <IconDirection className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex flex-col items-start leading-none pr-1">
+                 <span className="text-[9px] font-black uppercase tracking-widest opacity-90">Indo pra festa?</span>
+                 <span className="text-sm font-bold">Traçar Rota</span>
+              </div>
+           </button>
+        </div>
+      )}
 
       {isEventDay && (
         <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 animate-in fade-in">
@@ -328,11 +386,12 @@ const App: React.FC = () => {
           <Cart 
             user={user} 
             reservedGifts={gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved')} 
+            onOpenChange={setIsCartOpen} // O App agora sabe se o carrinho está aberto
             onRelease={(id) => {
               showAlert(
                 'confirm', 
-                'Remover Presente?', 
-                'O item voltará para a lista e ficará disponível para outros convidados.',
+                'Mudou de ideia?', 
+                'Sem problemas! O item vai voltar para a lista e outra pessoa poderá escolher. 😉',
                 () => updateGiftStatus(id, 'available'),
                 () => {}
               );
@@ -343,28 +402,6 @@ const App: React.FC = () => {
             <div className="mb-4">
                <Header user={user} />
             </div>
-            
-            {isEventDay && (
-              <div className="animate-in zoom-in-95 duration-700 mb-8 mt-4">
-                <button 
-                  onClick={handleTraceRoute}
-                  className="w-full bg-gradient-to-r from-[#B07D62] to-[#9c6a50] text-white p-4 rounded-3xl shadow-xl flex items-center justify-between group active:scale-[0.98] transition-all border-4 border-white/50"
-                >
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
-                         <IconDirection className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-90">Hoje é o grande dia!</p>
-                        <h3 className="text-lg md:text-xl font-bold leading-tight">Traçar Rota p/ Festa</h3>
-                      </div>
-                   </div>
-                   <div className="w-10 h-10 bg-white text-[#B07D62] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <IconMapPin className="w-5 h-5" />
-                   </div>
-                </button>
-              </div>
-            )}
             
             <div className="my-10 md:my-16 space-y-8">
               {!isEventDay && <div className="">
@@ -416,11 +453,16 @@ const App: React.FC = () => {
                   <GiftList 
                     gifts={gifts} 
                     currentUser={user}
+                    isFinalStretch={isFinalStretch}
                     onReserve={(gift) => {
+                      const msg = isFinalStretch 
+                         ? 'Como estamos muito pertinho da data, sugerimos levar o presente em mãos na festa. Podemos confirmar sua reserva?'
+                         : 'Ao confirmar, este item sairá da lista para os outros convidados. Você pode ver detalhes de como entregar depois.';
+                      
                       showAlert(
                           'confirm',
                           `Reservar ${gift.name}?`,
-                          'Ao confirmar, este item sairá da lista para os outros convidados. Você pode ver detalhes de como entregar depois.',
+                          msg,
                           () => updateGiftStatus(gift.id, 'reserved', user.name),
                           () => {}
                       );
