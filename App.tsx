@@ -292,6 +292,10 @@ const App: React.FC = () => {
     );
   };
 
+  // Cálculo de variaveis para renderização
+  const userReservedGifts = user ? gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved') : [];
+  const hasCartItems = userReservedGifts.length > 0;
+
   return (
     <div className={`min-h-screen text-[#3D403D] pb-10 transition-colors duration-1000 relative ${isEventDay ? 'bg-[#E6E4DD]' : 'bg-[#F8F7F2]'}`}>
       
@@ -311,13 +315,25 @@ const App: React.FC = () => {
       {user && <MusicPlayer />}
 
       {/* GPS FLUTUANTE (RETA FINAL) */}
-      {/* Escondemos quando o carrinho está aberto (!isCartOpen) */}
+      {/* 
+         POSICIONAMENTO INTELIGENTE:
+         - Se tem itens no carrinho (hasCartItems): Fica no bottom-24 (para não bater na barra)
+         - Se NÃO tem itens: Fica no bottom-4 (mais estético no rodapé)
+         - Se o carrinho está ABERTO (isCartOpen): Some/Translada para baixo
+      */}
       {user && isFinalStretch && !showIntro && (
         <div 
           className={`
-            fixed bottom-24 left-4 z-[90] md:bottom-8 md:left-8 
-            transition-all duration-300 ease-in-out
-            ${isCartOpen ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}
+            fixed left-4 z-[90] md:left-8 
+            transition-all duration-500 ease-in-out
+            ${isCartOpen 
+              ? 'opacity-0 translate-y-10 pointer-events-none' 
+              : 'opacity-100 translate-y-0'
+            }
+            ${hasCartItems 
+              ? 'bottom-24 md:bottom-8' // Posição Alta (com barra)
+              : 'bottom-4 md:bottom-8'  // Posição Baixa (sem barra)
+            }
           `}
         >
            <button 
@@ -377,7 +393,7 @@ const App: React.FC = () => {
         <div className={`transition-opacity duration-1000 relative z-10 ${showIntro ? 'opacity-0' : 'opacity-100'}`}>
           <Cart 
             user={user} 
-            reservedGifts={gifts.filter(g => g.reservedBy === user.name && g.status === 'reserved')} 
+            reservedGifts={userReservedGifts} 
             onOpenChange={setIsCartOpen} // O App agora sabe se o carrinho está aberto
             onRelease={(id) => {
               showAlert(
