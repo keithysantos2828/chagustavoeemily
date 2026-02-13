@@ -62,16 +62,8 @@ const App: React.FC = () => {
     return { isEventDay: isToday, isFinalStretch: isStretch };
   }, []);
   
-  // Persistência de Login (Correção)
-  useEffect(() => {
-    const storedName = localStorage.getItem('housewarming_user_name');
-    if (storedName) {
-      setUser({
-        name: storedName,
-        isAdmin: storedName.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
-      });
-    }
-  }, []);
+  // NOTA: Removido o useEffect de auto-login para permitir que o Onboarding
+  // mostre a tela de "Continuar como..." baseada no localStorage.
   
   const [introMode] = useState<'default' | 'returning'>(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('housewarming_user_name')) {
