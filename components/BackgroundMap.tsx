@@ -17,7 +17,7 @@ const BackgroundMap: React.FC = () => {
     // Inicializa o mapa
     const map = L.map(mapContainerRef.current, {
       center: CENTER_COORDS,
-      zoom: 15, // Zoom 15: Ideal para ver o bairro e ruas de acesso sem perder contexto
+      zoom: 17, // Zoom 15: Ideal para ver o bairro e ruas de acesso sem perder contexto
       zoomControl: false,       // Remove controles de zoom (+/-)
       attributionControl: false, // Remove barra inferior (vamos por crédito discreto se necessário)
       dragging: false,           // Mapa estático (background)
