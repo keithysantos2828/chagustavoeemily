@@ -13,11 +13,12 @@ import PresenceList from './components/PresenceList';
 import CustomAlert, { AlertType } from './components/CustomAlert';
 import IntroAnimation from './components/IntroAnimation';
 import DeliveryGuide from './components/DeliveryGuide';
-import { IconDirection, IconMapPin } from './components/Icons';
+import { IconDirection } from './components/Icons';
 import MusicPlayer from './components/MusicPlayer';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import ProcessingModal from './components/ProcessingModal';
 import SuccessModal from './components/SuccessModal';
+import BackgroundMap from './components/BackgroundMap';
 
 // Declaração para confetes
 declare global {
@@ -356,17 +357,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isEventDay && (
-        <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 animate-in fade-in">
-           <iframe 
-             src="https://maps.google.com/maps?q=Sede+Campestre+Sintracon+Rua+Angela+Perin+Dagostin&t=&z=15&ie=UTF8&iwloc=&output=embed"
-             className="w-full h-full object-cover opacity-30 grayscale contrast-125"
-             style={{ border: 0 }}
-             loading="lazy"
-           ></iframe>
-           <div className="absolute inset-0 bg-white/20 mix-blend-overlay"></div>
-        </div>
-      )}
+      {/* NOVO MAPA DE FUNDO CLEAN (LEAFLET + CARTODB) */}
+      <BackgroundMap />
 
       {/* A Intro agora recebe o sinal de isAppReady */}
       {showIntro && (

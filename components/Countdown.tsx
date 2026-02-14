@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { IconHeart, IconSparkles, IconCheck, IconCalendarPlus } from './Icons';
+import { IconHeart, IconCheck, IconCalendarPlus } from './Icons';
 
 interface CountdownProps {
   targetDate: Date;
@@ -20,7 +20,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     const diff = target.getTime() - now.getTime();
     
     // Cálculo de dias de calendário (Meia-noite a Meia-noite)
-    // Isso garante que "Amanhã" seja realmente o dia seguinte no calendário, independente da hora
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
     const msPerDay = 1000 * 60 * 60 * 24;
@@ -54,7 +53,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       const { mode: newMode, time, calendarDaysDiff } = calculateTime();
       setTimeLeft(time);
       setMode(newMode);
-      updateMessages(time, newMode, calendarDaysDiff);
+      updateMessages(newMode, calendarDaysDiff);
     };
 
     update();
@@ -63,20 +62,20 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  const updateMessages = (time: any, currentMode: TimeMode, calendarDaysDiff: number) => {
+  const updateMessages = (currentMode: TimeMode, calendarDaysDiff: number) => {
     if (currentMode === 'FUTURE') {
-      // Lógica Baseada em Calendário (Muito mais natural para humanos)
+      // Lógica Baseada em Calendário
       if (calendarDaysDiff > 1) {
         setHeroMessage("Faltam apenas...");
         setSubMessage("Para o nosso Chá de Casa Nova");
       } else if (calendarDaysDiff === 1) {
-        // Agora só aparece se for realmente o dia anterior no calendário
-        setHeroMessage("É Amanhã! 😱❤️");
-        setSubMessage("Segura a ansiedade!");
+        // "Amanhã" - Elegante e limpo
+        setHeroMessage("Amanhã é o grande dia! ✨");
+        setSubMessage("Prepare o coração, estamos quase lá");
       } else {
-        // calendarDaysDiff === 0 mas ainda é FUTURE (horas finais do mesmo dia)
-        setHeroMessage("É hoje, está quase! ⏳");
-        setSubMessage("Estamos contando os minutos!");
+        // Mesmo dia, mas ainda não chegou a hora (Ex: Manhã do evento)
+        setHeroMessage("É hoje! Contando as horas...");
+        setSubMessage("Estamos preparando tudo com carinho");
       }
     } else if (currentMode === 'TODAY') {
       setHeroMessage("O Momento Chegou! ✨🎉");
