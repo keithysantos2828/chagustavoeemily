@@ -17,7 +17,7 @@ const BackgroundMap: React.FC = () => {
     // Inicializa o mapa
     const map = L.map(mapContainerRef.current, {
       center: CENTER_COORDS,
-      zoom: 15, // Zoom um pouco maior para ver mais detalhes das ruas
+      zoom: 15, // Zoom 15: Ideal para ver o bairro e ruas de acesso sem perder contexto
       zoomControl: false,       // Remove controles de zoom (+/-)
       attributionControl: false, // Remove barra inferior (vamos por crédito discreto se necessário)
       dragging: false,           // Mapa estático (background)
@@ -74,16 +74,14 @@ const BackgroundMap: React.FC = () => {
     <div className="fixed inset-0 z-0 pointer-events-none w-full h-full">
       <div 
         ref={mapContainerRef} 
-        // REMOVIDA A OPACIDADE BAIXA. Agora está 100% visível (opacity-100).
-        // Ajustado o contraste para as linhas aparecerem bem.
-        className="w-full h-full opacity-100 grayscale-[0%] contrast-[1.1]"
+        // Opacidade ajustada para 80% (opacity-80) conforme solicitado
+        // Mantém contraste alto para as ruas aparecerem bem
+        className="w-full h-full opacity-80 grayscale-[0%] contrast-[1.1]"
         style={{ background: '#F8F7F2' }}
       />
       {/* 
-         Gradiente Overlay Ajustado:
-         - Reduzi drasticamente a cobertura.
-         - Antes era /95 (sólido), agora é /60 nas bordas e /10 no centro.
-         - Isso permite ver o mapa claramente no meio da tela.
+         Gradiente Overlay:
+         Suaviza as bordas para o texto sobrepor com leitura fácil
       */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#F8F7F2]/60 via-[#F8F7F2]/10 to-[#F8F7F2]/60"></div>
     </div>
