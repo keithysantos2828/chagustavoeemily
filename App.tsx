@@ -318,7 +318,7 @@ const App: React.FC = () => {
       {/* 
          POSICIONAMENTO INTELIGENTE:
          - Se tem itens no carrinho (hasCartItems): Fica no bottom-24 (para não bater na barra)
-         - Se NÃO tem itens: Fica no bottom-4 (mais estético no rodapé)
+         - Se NÃO tem itens: Fica no bottom-6 (levemente mais acima que bottom-4 para estilo)
          - Se o carrinho está ABERTO (isCartOpen): Some/Translada para baixo
       */}
       {user && isFinalStretch && !showIntro && (
@@ -332,7 +332,7 @@ const App: React.FC = () => {
             }
             ${hasCartItems 
               ? 'bottom-24 md:bottom-8' // Posição Alta (com barra)
-              : 'bottom-4 md:bottom-8'  // Posição Baixa (sem barra)
+              : 'bottom-6 md:bottom-8'  // Posição Baixa (sem barra)
             }
           `}
         >
