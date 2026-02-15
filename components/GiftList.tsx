@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Gift, User } from '../types';
 import { 
   IconGift, IconEye, IconEyeOff, IconCheck, IconShoppingCart, IconSortAsc, IconSortDesc, IconFilter, IconArrowUp, IconSearch, IconSparkles, IconX, IconHeart, IconClock
@@ -36,14 +36,25 @@ const GiftSkeleton = () => (
 // Componente interno para imagem
 const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMine: boolean }> = ({ src, alt, isReserved, isMine }) => {
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!src || src.trim() === '') {
       setImageStatus('error');
     } else {
+      // Reinicia status ao mudar URL
       setImageStatus('loading');
     }
   }, [src]);
+
+  // Efeito de segurança para imagens em cache
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      if (imgRef.current.naturalWidth > 0) {
+        setImageStatus('loaded');
+      } 
+    }
+  }, []);
 
   return (
     <div className="relative aspect-square overflow-hidden bg-[#F8F7F2]">
@@ -66,6 +77,7 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
       
       {src && imageStatus !== 'error' && (
         <img 
+          ref={imgRef}
           src={src} 
           alt={alt} 
           onLoad={() => setImageStatus('loaded')}

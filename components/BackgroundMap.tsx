@@ -14,12 +14,17 @@ const BackgroundMap: React.FC = () => {
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return; // Evita re-inicializar
 
-    // Inicializa o mapa
+    // Função auxiliar para determinar o zoom baseado na largura atual
+    const getTargetZoom = () => {
+       return window.innerWidth < 768 ? 15 : 17;
+    };
+
+    // Inicializa o mapa com o zoom correto para o momento
     const map = L.map(mapContainerRef.current, {
       center: CENTER_COORDS,
-      zoom: 17, // Zoom 15: Ideal para ver o bairro e ruas de acesso sem perder contexto
+      zoom: getTargetZoom(),
       zoomControl: false,       // Remove controles de zoom (+/-)
-      attributionControl: false, // Remove barra inferior (vamos por crédito discreto se necessário)
+      attributionControl: false, // Remove barra inferior
       dragging: false,           // Mapa estático (background)
       scrollWheelZoom: false,
       doubleClickZoom: false,
@@ -28,8 +33,6 @@ const BackgroundMap: React.FC = () => {
     });
 
     // Adiciona Tiles do CartoDB Positron (Limpo, Grayscale)
-    // Opções: light_all (com labels suaves) ou light_nolabels (sem nada escrito)
-    // Vamos usar light_all para dar contexto de ruas, mas é bem sutil.
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 20,
       subdomains: 'abcd'
@@ -63,8 +66,22 @@ const BackgroundMap: React.FC = () => {
 
     mapInstanceRef.current = map;
 
+    // --- LÓGICA DE REDIMENSIONAMENTO ---
+    // Monitora mudanças no tamanho da janela para ajustar o zoom dinamicamente
+    const handleResize = () => {
+      if (!map) return;
+      const targetZoom = getTargetZoom();
+      // Só aplica se o zoom for diferente para evitar processamento desnecessário
+      if (map.getZoom() !== targetZoom) {
+        map.setZoom(targetZoom);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
     // Cleanup
     return () => {
+      window.removeEventListener('resize', handleResize);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -74,14 +91,12 @@ const BackgroundMap: React.FC = () => {
     <div className="fixed inset-0 z-0 pointer-events-none w-full h-full">
       <div 
         ref={mapContainerRef} 
-        // Opacidade ajustada para 80% (opacity-80) conforme solicitado
-        // Mantém contraste alto para as ruas aparecerem bem
+        // Opacidade em 80% conforme solicitado anteriormente
         className="w-full h-full opacity-80 grayscale-[0%] contrast-[1.1]"
         style={{ background: '#F8F7F2' }}
       />
       {/* 
-         Gradiente Overlay:
-         Suaviza as bordas para o texto sobrepor com leitura fácil
+         Gradiente Overlay
       */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#F8F7F2]/60 via-[#F8F7F2]/10 to-[#F8F7F2]/60"></div>
     </div>
