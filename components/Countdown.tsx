@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { IconHeart, IconCheck, IconCalendarPlus } from './Icons';
+import { IconHeart, IconCheck, IconSparkles, IconPhoto } from './Icons';
 
 interface CountdownProps {
   targetDate: Date;
@@ -19,25 +19,22 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     const target = new Date(targetDate);
     const diff = target.getTime() - now.getTime();
     
-    // Cálculo de dias de calendário (Meia-noite a Meia-noite) para precisão absoluta de "Dia"
+    // Cálculo de dias de calendário (Meia-noite a Meia-noite)
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
     const msPerDay = 1000 * 60 * 60 * 24;
     
     // Diferença em dias inteiros
-    const calendarDaysDiff = Math.round((targetMidnight.getTime() - todayMidnight.getTime()) / msPerDay);
+    const calendarDaysDiff = Math.floor((targetMidnight.getTime() - todayMidnight.getTime()) / msPerDay);
 
-    // Se a data do calendário é anterior a hoje, é PASSADO.
     if (calendarDaysDiff < 0) {
-      const d = Math.abs(calendarDaysDiff);
       return { 
         mode: 'PAST' as TimeMode, 
-        time: { dias: d, horas: 0, minutos: 0, segundos: 0 }, 
+        time: { dias: Math.abs(calendarDaysDiff), horas: 0, minutos: 0, segundos: 0 }, 
         calendarDaysDiff 
       };
     }
 
-    // Se é o mesmo dia de calendário, é HOJE.
     if (calendarDaysDiff === 0) {
        return { 
          mode: 'TODAY' as TimeMode, 
@@ -89,8 +86,8 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       setHeroMessage("O Momento Chegou! ✨🎉");
       setSubMessage("Estamos esperando por vocês!");
     } else if (currentMode === 'PAST') {
-      setHeroMessage("Foi inesquecível! ❤️");
-      setSubMessage("Obrigado por ajudarem a realizar esse sonho.");
+      setHeroMessage("Missão Cumprida! ❤️");
+      setSubMessage("Obrigado por fazer parte da nossa história.");
     }
   };
   
@@ -100,9 +97,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
         w-full backdrop-blur-md border rounded-2xl md:rounded-[2rem] py-3 md:py-5 
         shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center 
         group transition-all duration-300 relative overflow-hidden
-        ${mode === 'PAST' 
-          ? 'bg-[#B07D62]/5 border-[#B07D62]/10' 
-          : isUrgent 
+        ${isUrgent 
             ? 'bg-[#B07D62] border-[#B07D62] text-white shadow-[#B07D62]/30 shadow-lg scale-105' 
             : 'bg-white/80 border-[#52796F]/10 text-[#354F52] hover:-translate-y-1 hover:shadow-lg'
         }
@@ -111,13 +106,13 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
 
         <span className={`
           text-3xl sm:text-4xl md:text-5xl font-bold leading-none mb-1 md:mb-2 tabular-nums tracking-tighter
-          ${mode === 'PAST' ? 'text-[#B07D62]' : isUrgent ? 'text-white' : 'text-[#354F52]'}
+          ${isUrgent ? 'text-white' : 'text-[#354F52]'}
         `}>
           {padZero ? (value || 0).toString().padStart(2, '0') : (value || 0)}
         </span>
         <span className={`
           text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black transition-opacity
-          ${mode === 'PAST' ? 'text-[#B07D62]' : isUrgent ? 'text-white/80' : 'text-[#B07D62] opacity-80 group-hover:opacity-100'}
+          ${isUrgent ? 'text-white/80' : 'text-[#B07D62] opacity-80 group-hover:opacity-100'}
         `}>
           {label}
         </span>
@@ -127,6 +122,43 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
 
   if (!timeLeft) return null;
 
+  // =========================================================
+  // NOVO VISUAL PÓS-EVENTO (CARD DE AGRADECIMENTO CLEAN)
+  // =========================================================
+  if (mode === 'PAST') {
+    return (
+      <div className="flex flex-col items-center justify-center py-6 md:py-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+         
+         <div className="relative bg-[#FDFCF8] p-8 md:p-12 rounded-[2rem] shadow-xl border border-[#B07D62]/20 max-w-lg text-center mx-4">
+            
+            {/* Elemento Decorativo de Fundo */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#B07D62]/5 rounded-full blur-3xl -z-10"></div>
+            
+            <div className="mb-6 flex justify-center">
+               <div className="w-20 h-20 bg-[#B07D62]/10 rounded-full flex items-center justify-center border border-[#B07D62]/20 shadow-sm">
+                  <IconHeart className="w-10 h-10 text-[#B07D62]" />
+               </div>
+            </div>
+
+            <h2 className="font-cursive text-4xl md:text-5xl text-[#354F52] mb-4 drop-shadow-sm">
+               Foi inesquecível!
+            </h2>
+            
+            <p className="text-[#52796F] text-lg leading-relaxed mb-8 font-serif italic">
+               "Guardaremos cada sorriso, cada abraço e cada gesto de carinho em nossos corações para sempre."
+            </p>
+
+            <div className="flex items-center justify-center gap-4 opacity-60">
+               <span className="h-[1px] w-12 bg-[#B07D62]"></span>
+               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#B07D62]">15 . FEV . 2026</span>
+               <span className="h-[1px] w-12 bg-[#B07D62]"></span>
+            </div>
+         </div>
+      </div>
+    );
+  }
+
+  // Lógica de Urgência Visual: Se faltar menos de 1 dia no tempo absoluto
   const isUrgentMode = timeLeft.dias === 0 && mode === 'FUTURE';
 
   return (
@@ -138,9 +170,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
              ? 'text-4xl md:text-6xl text-[#B07D62] animate-pulse drop-shadow-md' 
              : 'text-3xl md:text-5xl text-[#52796F]'
         }`}>
-          {mode === 'PAST' && <IconHeart className="w-8 h-8 md:w-10 md:h-10 text-[#B07D62]" />}
           {heroMessage}
-          {mode === 'PAST' && <IconHeart className="w-8 h-8 md:w-10 md:h-10 text-[#B07D62]" />}
         </h2>
       </div>
 
@@ -156,12 +186,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       ) : (
         <div className="flex justify-center items-center gap-2 sm:gap-3 md:gap-4 max-w-4xl mx-auto px-2 w-full flex-wrap">
           
-          {mode === 'PAST' && (
-             <div className="flex flex-col items-center gap-2">
-                {renderCounterItem(timeLeft.dias, 'Dias de novas memórias', false, false)}
-             </div>
-          )}
-
           {mode === 'FUTURE' && (
             <>
               {timeLeft.dias > 0 && renderCounterItem(timeLeft.dias, timeLeft.dias === 1 ? 'Dia' : 'Dias', false, false)}
@@ -179,9 +203,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       )}
 
       <div className="text-center px-4">
-        <p className={`text-[10px] md:text-xs font-black uppercase tracking-[0.3em] animate-in slide-in-from-bottom-2 ${
-           mode === 'PAST' ? 'text-[#B07D62]' : 'text-[#84A98C]'
-        }`}>
+        <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] animate-in slide-in-from-bottom-2 text-[#84A98C]">
           {subMessage}
         </p>
       </div>

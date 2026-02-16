@@ -1,3 +1,4 @@
+
 # 🏡 PROJECT MASTERPLAN: Emily & Gustavo - Chá de Casa Nova
 
 Este documento é a **ÚNICA** fonte de verdade para regras de design, comportamento e progresso do projeto.
@@ -11,6 +12,7 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 3.  **Dualidade (Mobile vs Desktop):**
     *   **Mobile:** App Nativo (Bottom Sheets, Toque fácil).
     *   **Desktop:** Editorial/Software (Hover, Tooltips, Grid expandido).
+4.  **Sensibilidade Temporal:** O site deve "sentir" o tempo. Antes é ansiedade, durante é celebração, depois é gratidão.
 
 ---
 
@@ -24,28 +26,29 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 - [x] **Core:** Lista de Presentes, Filtros por Categoria, Integração Google Sheets.
 - [x] **Feedback:** Sistema de Confetes e Mensagens Humanizadas.
 
-### ✨ Fase 2: Encantamento & Facilidade (ATUAL)
+### ✨ Fase 2: Encantamento & Facilidade (CONCLUÍDA)
 *Agora vamos decorar, colocar flores nos vasos e facilitar a vida das visitas.*
 
-- [x] **Facilitador de Encontros (Busca):**
-    *   Barra de busca instantânea humanizada.
-- [x] **Clareza na Ação de Presentear:**
-    *   Implementação de 3 fluxos distintos no card do presente: "Comprar na Shopee", "Presentear por Fora" e "Apenas ver".
-- [x] **Limpeza do Backend:** (CORRIGIDO)
-    *   Script `GOOGLE_SCRIPT_CODE.js` atualizado com a **lista REAL de presentes**.
-- [x] **Admin de Luxo (Painel da Noiva):**
-    *   Redesign completo do painel administrativo.
-    *   Correção da funcionalidade de "Baixar Imagem" para Stories usando `html2canvas`.
-- [x] **Cartão de Visita Digital (SEO & Open Graph):**
-    *   Meta tags configuradas e validadas no `index.html`.
-- [x] **Refinamento Textual (Humanização):**
-    *   Alertas de confirmação e remoção reescritos para soarem mais acolhedores.
+- [x] **Facilitador de Encontros (Busca):** Barra de busca instantânea humanizada.
+- [x] **Clareza na Ação de Presentear:** Fluxos distintos: "Comprar na Shopee", "Presentear por Fora" e "Apenas ver".
+- [x] **Limpeza do Backend:** Script atualizado com a lista REAL de presentes.
+- [x] **Admin de Luxo (Painel da Noiva):** Redesign completo e geração de imagem para Stories.
+- [x] **Cartão de Visita Digital:** SEO & Open Graph configurados.
+- [x] **Refinamento Textual:** Alertas reescritos para tom acolhedor.
 
-### 🚀 Fase 3: Celebração & Detalhes Finais (PRÓXIMA)
-*O dia da festa se aproxima!*
+### 💖 Fase 3: Pós-Evento & Memórias (EM ANDAMENTO)
+*A festa acabou, mas o carinho fica. O site se transforma em um álbum de memórias.*
 
-- [ ] **Modo "Dia do Evento":** Ajustes automáticos no layout para o dia 15/02.
-- [ ] **Galeria de Fotos (Pós-evento):** Previsão para funcionalidade futura.
+- [x] **Lógica Temporal Robusta:**
+    *   Detecção automática de "Ontem", "Hoje" e "Futuro" baseada em dia de calendário (não apenas horas).
+- [x] **Modo "Cartão de Agradecimento":**
+    *   Redesign completo do componente `Countdown`. Sai o relógio, entra um "Card Polaroid" estático e elegante.
+    *   Remoção de elementos de urgência (GPS, Guia de Entrega).
+- [x] **Adaptação Textual Global:**
+    *   Mudança de todos os textos para o passado ("Onde celebramos", "Quem participou", "Foi lindo").
+- [x] **Lista de Presentes Tardia:**
+    *   Adaptação dos botões para "Enviar presente tardio" (para os atrasadinhos).
+- [ ] **Galeria de Fotos:** (Futuro) Implementar carrossel com fotos oficiais do evento.
 
 ---
 
@@ -54,6 +57,7 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 *   **Cores:** Sempre usar as variáveis CSS (`--sage`, `--terracotta`, etc). Nada de hexcodes soltos se possível.
 *   **Imagens:** Sempre usar `GiftImage` com lazy loading e skeleton.
 *   **Texto:** Títulos em *Dancing Script* ou *Cormorant*. Corpo em *Montserrat*.
+*   **Mapa:** Opacidade em 80% para manter a leveza visual.
 
 ---
 
@@ -64,4 +68,4 @@ Este documento é a **ÚNICA** fonte de verdade para regras de design, comportam
 *   **Fundo:** `#F8F7F2` (Sand)
 
 ---
-**Status Atual:** Fase 2 concluída. Refinando textos e interações para máxima humanização.
+**Status Atual:** Fase 3 ativa. O sistema opera agora em modo "Pós-Evento" com visual de agradecimento.

@@ -55,7 +55,7 @@ const App: React.FC = () => {
     
     // Diferença em dias
     const diffTime = event.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Math.floor para garantir negativos
     
     // Reta final: Entre 3 dias e o dia do evento (inclusive)
     const isStretch = diffDays <= 3 && diffDays >= 0;
@@ -405,8 +405,8 @@ const App: React.FC = () => {
                  <Countdown targetDate={EVENT_DATE} />
               </div>}
 
-              {/* Só mostra Guia de Entrega se não passou */}
-              {!isEventDay && !isPast && <DeliveryGuide targetDate={EVENT_DATE} />}
+              {/* Guia de entrega: Agora mostra versão 'Tardia' se isPast */}
+              {!isEventDay && <DeliveryGuide targetDate={EVENT_DATE} />}
             </div>
 
             <PresenceList gifts={gifts} currentUser={user} isPast={isPast} />

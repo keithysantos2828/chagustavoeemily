@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { IconGift, IconCheck, IconDirection, IconSparkles, IconTruck, IconClock } from './Icons';
+import { IconGift, IconCheck, IconDirection, IconSparkles, IconTruck, IconClock, IconHeart } from './Icons';
 
 interface DeliveryGuideProps {
   targetDate: Date;
@@ -10,10 +9,8 @@ const DeliveryGuide: React.FC<DeliveryGuideProps> = ({ targetDate }) => {
   const [daysLeft, setDaysLeft] = useState(0);
 
   useEffect(() => {
-    // Função para calcular dias exatos restantes (ignorando horas para ser "Dias Cheios")
     const calculateDays = () => {
       const now = new Date();
-      // Zera as horas para comparar apenas as datas
       const date1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const date2 = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
       
@@ -23,17 +20,53 @@ const DeliveryGuide: React.FC<DeliveryGuideProps> = ({ targetDate }) => {
     };
 
     calculateDays();
-    // Atualiza a cada minuto para garantir sincronia se a pessoa deixar a aba aberta
     const timer = setInterval(calculateDays, 60000); 
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  // Se já passou ou é hoje
-  if (daysLeft < 0) return null;
+  // Se já passou (daysLeft < 0), mostramos o modo "TARDIO/PÓS-FESTA"
+  const isPast = daysLeft < 0;
 
-  // Lógica de Urgência (Reta Final)
-  const isFinalWeek = daysLeft <= 7; // Reta final (1 semana)
-  const isSuperUrgent = daysLeft <= 3; // Crítico (3 dias - Reta Finalíssima)
+  if (isPast) {
+    return (
+      <div className="w-full max-w-2xl mx-auto px-4 animate-in slide-in-from-bottom-6 duration-700">
+        <div className="relative overflow-hidden rounded-[2rem] p-6 md:p-8 border transition-all duration-500 bg-[#FDFCF8] text-[#354F52] border-[#B07D62]/20 shadow-lg">
+          
+          <div className="absolute top-[-10%] right-[-5%] opacity-5 rotate-12">
+             <IconGift className="w-32 h-32" />
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md bg-[#B07D62]/10 text-[#B07D62]">
+               <IconHeart className="w-8 h-8" />
+            </div>
+
+            <div className="text-center md:text-left flex-grow">
+              <h3 className="font-cursive text-2xl md:text-3xl mb-2 leading-tight text-[#354F52]">
+                Ainda dá tempo de participar?
+              </h3>
+              
+              <p className="text-sm md:text-base leading-relaxed text-[#52796F]">
+                Claro que sim! O chá passou, mas nossa casa continua aberta para receber seu carinho. 
+                <span className="block mt-1">Você pode escolher um item da lista e nos enviar quando quiser.</span>
+              </p>
+
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm bg-white border-[#B07D62]/20 text-[#B07D62]">
+                <IconCheck className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Lista ativa para envios tardios
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Lógica Pré-Evento (Normal)
+  const isFinalWeek = daysLeft <= 7;
+  const isSuperUrgent = daysLeft <= 3;
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 animate-in slide-in-from-bottom-6 duration-700 delay-200">
@@ -46,20 +79,14 @@ const DeliveryGuide: React.FC<DeliveryGuideProps> = ({ targetDate }) => {
              : 'bg-white/60 text-[#354F52] border-[#52796F]/10'
         }
       `}>
-        {/* Background Icons Decoration */}
         <div className="absolute top-[-10%] right-[-5%] opacity-10 rotate-12">
           {isSuperUrgent ? <IconTruck className="w-32 h-32" /> : <IconGift className="w-32 h-32" />}
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-          
-          {/* Icon Box */}
           <div className={`
             w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg relative
-            ${isFinalWeek || isSuperUrgent
-              ? 'bg-white text-[#B07D62]' 
-              : 'bg-[#52796F] text-white'
-            }
+            ${isFinalWeek || isSuperUrgent ? 'bg-white text-[#B07D62]' : 'bg-[#52796F] text-white'}
           `}>
              {isSuperUrgent ? (
                 <>
