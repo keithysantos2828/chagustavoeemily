@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Gift } from './types';
-import { EVENT_DATE, SHEET_SCRIPT_URL, ADMIN_NAME } from './constants';
+import { EVENT_DATE, SHEET_SCRIPT_URL, ADMIN_NAME, ADMIN_VARIATIONS } from './constants';
 import Onboarding from './components/Onboarding';
 import Header from './components/Header';
 import Countdown from './components/Countdown';
@@ -197,9 +197,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleOnboarding = (name: string) => {
+    // Verifica se o nome digitado está na lista de variações de admin
+    const lowerName = name.trim().toLowerCase();
+    const isAdmin = ADMIN_VARIATIONS.includes(lowerName);
+
     const newUser: User = {
       name,
-      isAdmin: name.trim().toLowerCase() === ADMIN_NAME.toLowerCase()
+      isAdmin
     };
     setUser(newUser);
     // Salva explicitamente no Onboarding caso não tenha sido salvo antes (redundância de segurança)

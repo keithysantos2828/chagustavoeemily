@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { IconHome, IconSparkles, IconArrowRight, IconUser, IconCheck } from './Icons';
 
@@ -18,7 +19,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onSubmit }) => {
 
   const validateAndSubmit = (nameToSubmit: string) => {
     const trimmed = nameToSubmit.trim();
-    if (trimmed.split(' ').length < 2 && trimmed.toLowerCase() !== 'emily thalia') {
+    const lowerName = trimmed.toLowerCase();
+    
+    // Lista de exceções para validação (admins)
+    const isAdminBypass = lowerName === 'emily thalia' || lowerName === 'emily thalya' || lowerName === 'emily thália';
+
+    if (trimmed.split(' ').length < 2 && !isAdminBypass) {
       setError('Por favor, digite seu Nome e Sobrenome para identificarmos você na lista. 😊');
       return;
     }

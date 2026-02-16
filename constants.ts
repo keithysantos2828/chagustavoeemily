@@ -9,6 +9,13 @@ yesterday.setHours(15, 0, 0, 0);
 export const EVENT_DATE = yesterday;
 export const ADMIN_NAME = 'Emily Thalia';
 
+// Lista de variações aceitas para login de Admin (Case insensitive)
+export const ADMIN_VARIATIONS = [
+  'emily thalia', 
+  'emily thalya', 
+  'emily thália'
+];
+
 // URL do Google Apps Script (Backend via Planilha)
 export const SHEET_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM4jEADX2uxzXqzefXg8dV22I_SwZXqU8JCyDeTFmkTxoa3h6AEnmYOIhtoPFhVcY_sQ/exec';
 
