@@ -45,7 +45,7 @@ const App: React.FC = () => {
   const prevGiftsRef = useRef<Gift[]>([]);
 
   // Lógica de Datas
-  const { isEventDay, isFinalStretch } = React.useMemo(() => {
+  const { isEventDay, isFinalStretch, isPast } = React.useMemo(() => {
     const now = new Date();
     // Zera horas para comparação de dias cheios
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -59,8 +59,11 @@ const App: React.FC = () => {
     
     // Reta final: Entre 3 dias e o dia do evento (inclusive)
     const isStretch = diffDays <= 3 && diffDays >= 0;
+    
+    // Passou
+    const isPastEvent = diffDays < 0;
 
-    return { isEventDay: isToday, isFinalStretch: isStretch };
+    return { isEventDay: isToday, isFinalStretch: isStretch, isPast: isPastEvent };
   }, []);
   
   // NOTA: Removido o useEffect de auto-login para permitir que o Onboarding
@@ -274,7 +277,7 @@ const App: React.FC = () => {
     showAlert(
       'confirm',
       'Tudo certo com a compra?',
-      `Se você já garantiu o(a) "${gift.name}" no site, confirme aqui para avisar a gente! Assim ninguém compra repetido. ❤️`,
+      `Se você já garantiu o(a) "${gift.name}" no site, confirme aqui para avisar a gente! ❤️`,
       () => updateGiftStatus(gift.id, 'reserved', user.name),
       () => {}
     );
@@ -315,14 +318,8 @@ const App: React.FC = () => {
 
       {user && <MusicPlayer />}
 
-      {/* GPS FLUTUANTE (RETA FINAL) */}
-      {/* 
-         POSICIONAMENTO INTELIGENTE:
-         - Se tem itens no carrinho (hasCartItems): Fica no bottom-24 (para não bater na barra)
-         - Se NÃO tem itens: Fica no bottom-6 (levemente mais acima que bottom-4 para estilo)
-         - Se o carrinho está ABERTO (isCartOpen): Some/Translada para baixo
-      */}
-      {user && isFinalStretch && !showIntro && (
+      {/* GPS FLUTUANTE - SÓ MOSTRA SE NÃO PASSOU AINDA E ESTIVER NA RETA FINAL */}
+      {user && isFinalStretch && !isPast && !showIntro && (
         <div 
           className={`
             fixed left-4 z-[90] md:left-8 
@@ -400,7 +397,7 @@ const App: React.FC = () => {
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-10">
             <div className="mb-4">
-               <Header user={user} />
+               <Header user={user} isPast={isPast} />
             </div>
             
             <div className="my-10 md:my-16 space-y-8">
@@ -408,7 +405,8 @@ const App: React.FC = () => {
                  <Countdown targetDate={EVENT_DATE} />
               </div>}
 
-              {!isEventDay && <DeliveryGuide targetDate={EVENT_DATE} />}
+              {/* Só mostra Guia de Entrega se não passou */}
+              {!isEventDay && !isPast && <DeliveryGuide targetDate={EVENT_DATE} />}
             </div>
 
             <PresenceList gifts={gifts} currentUser={user} />
@@ -454,10 +452,13 @@ const App: React.FC = () => {
                     gifts={gifts} 
                     currentUser={user}
                     isFinalStretch={isFinalStretch}
+                    isPast={isPast} // Passa o estado de passado
                     onReserve={(gift) => {
-                      const msg = isFinalStretch 
-                         ? 'Como estamos muito pertinho da data, sugerimos levar o presente em mãos na festa. Podemos confirmar sua reserva?'
-                         : 'Ao confirmar, este item sairá da lista para os outros convidados. Você pode ver detalhes de como entregar depois.';
+                      const msg = isPast
+                         ? 'Mesmo com o evento finalizado, adoramos receber carinho! Vamos registrar seu presente?'
+                         : isFinalStretch 
+                           ? 'Como estamos muito pertinho da data, sugerimos levar o presente em mãos na festa. Podemos confirmar sua reserva?'
+                           : 'Ao confirmar, este item sairá da lista para os outros convidados. Você pode ver detalhes de como entregar depois.';
                       
                       showAlert(
                           'confirm',

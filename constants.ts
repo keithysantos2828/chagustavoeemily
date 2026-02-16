@@ -1,6 +1,12 @@
+
 import { Gift } from './types';
 
-export const EVENT_DATE = new Date('2026-02-15T15:00:00');
+// Define a data para ONTEM dinamicamente para refletir que o evento já passou
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+yesterday.setHours(15, 0, 0, 0);
+
+export const EVENT_DATE = yesterday;
 export const ADMIN_NAME = 'Emily Thalia';
 
 // URL do Google Apps Script (Backend via Planilha)

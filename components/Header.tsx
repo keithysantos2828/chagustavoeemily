@@ -1,12 +1,14 @@
+
 import React, { useMemo } from 'react';
 import { User } from '../types';
-import { IconSparkles } from './Icons';
+import { IconSparkles, IconHeart } from './Icons';
 
 interface HeaderProps {
   user: User;
+  isPast?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ user }) => {
+const Header: React.FC<HeaderProps> = ({ user, isPast = false }) => {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'Bom dia';
@@ -21,7 +23,11 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
       
       <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
         <div className="inline-flex items-center gap-2 mb-6 opacity-80">
-          <IconSparkles className="w-4 h-4 text-[#B07D62]" />
+          {isPast ? (
+            <IconHeart className="w-4 h-4 text-[#B07D62]" />
+          ) : (
+            <IconSparkles className="w-4 h-4 text-[#B07D62]" />
+          )}
           <span className="text-[#52796F] text-xs font-bold uppercase tracking-[0.2em]">
             {greeting}, {user.name.split(' ')[0]}
           </span>
@@ -34,13 +40,16 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
         <div className="flex items-center justify-center gap-4 mt-6">
           <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#B07D62]"></span>
           <p className="text-[#B07D62] font-black uppercase tracking-[0.4em] text-[10px] md:text-xs">
-            Chá de Casa Nova
+            {isPast ? 'Nosso Chá foi lindo!' : 'Chá de Casa Nova'}
           </p>
           <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#B07D62]"></span>
         </div>
 
         <p className="mt-8 max-w-xl mx-auto text-[#52796F] font-serif text-lg md:text-2xl italic leading-relaxed">
-          "Construindo nosso cantinho, tijolinho por tijolinho, com a ajuda de quem amamos."
+          {isPast 
+            ? "\"Obrigado por cada abraço, cada presente e por fazerem parte do início da nossa história.\""
+            : "\"Construindo nosso cantinho, tijolinho por tijolinho, com a ajuda de quem amamos.\""
+          }
         </p>
       </div>
     </header>

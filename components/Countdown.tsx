@@ -81,8 +81,8 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
       setHeroMessage("O Momento Chegou! ✨🎉");
       setSubMessage("Estamos esperando por vocês!");
     } else if (currentMode === 'PAST') {
-      setHeroMessage("Nossa nova fase começou! 🏡");
-      setSubMessage("Obrigado por ajudarem a construir esse cantinho.");
+      setHeroMessage("Foi inesquecível! ❤️");
+      setSubMessage("Obrigado por ajudarem a realizar esse sonho.");
     }
   };
   
@@ -103,7 +103,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
         shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center 
         group transition-all duration-300 relative overflow-hidden
         ${mode === 'PAST' 
-          ? 'bg-white/90 border-[#B07D62]/20' 
+          ? 'bg-[#B07D62]/5 border-[#B07D62]/10' 
           : isUrgent 
             ? 'bg-[#B07D62] border-[#B07D62] text-white shadow-[#B07D62]/30 shadow-lg scale-105' 
             : 'bg-white/80 border-[#52796F]/10 text-[#354F52] hover:-translate-y-1 hover:shadow-lg'
@@ -119,7 +119,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
         </span>
         <span className={`
           text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black transition-opacity
-          ${mode === 'PAST' ? 'text-[#354F52]' : isUrgent ? 'text-white/80' : 'text-[#B07D62] opacity-80 group-hover:opacity-100'}
+          ${mode === 'PAST' ? 'text-[#B07D62]' : isUrgent ? 'text-white/80' : 'text-[#B07D62] opacity-80 group-hover:opacity-100'}
         `}>
           {label}
         </span>
@@ -161,7 +161,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
           
           {mode === 'PAST' && (
              <div className="flex flex-col items-center gap-2">
-                {renderCounterItem(timeLeft.dias, 'Dias de Casa Nova')}
+                {renderCounterItem(timeLeft.dias, 'Dias de novas memórias', false, false)}
              </div>
           )}
 
@@ -179,16 +179,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
             </>
           )}
         </div>
-      )}
-
-      {mode === 'FUTURE' && (
-         <button 
-           onClick={addToCalendar}
-           className="bg-white/50 backdrop-blur-sm px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest text-[#52796F] border border-[#52796F]/10 hover:bg-white hover:text-[#354F52] hover:shadow-md transition-all flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-700 delay-300"
-         >
-           <IconCalendarPlus className="w-4 h-4" />
-           Salvar na Agenda
-         </button>
       )}
 
       <div className="text-center px-4">

@@ -12,6 +12,7 @@ interface GiftListProps {
   onShopeeClick: (gift: Gift) => void;
   onCategoryChange?: (category: string) => void;
   isFinalStretch?: boolean;
+  isPast?: boolean; // Novo prop para pós-evento
 }
 
 // ==========================================
@@ -128,7 +129,7 @@ const GiftImage: React.FC<{ src: string; alt: string; isReserved: boolean; isMin
   );
 };
 
-const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange, isFinalStretch = false }) => {
+const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onShopeeClick, onCategoryChange, isFinalStretch = false, isPast = false }) => {
   const [activeTab, setActiveTab] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
@@ -392,19 +393,44 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                       md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 md:transition-all md:duration-500 md:ease-out
                     `}>
                       
-                      {/* LÓGICA DE BOTÕES INVERTIDA PARA RETA FINAL */}
-                      {isFinalStretch ? (
+                      {/* LÓGICA DE BOTÕES - ADAPTADA PARA PÓS-EVENTO (isPast) */}
+                      {isPast ? (
                         <>
-                           {/* Botão Principal: Levar em Mãos */}
+                           {/* Botão de Envio Tardio (Link) */}
+                           {hasLink && (
+                             <button 
+                               onClick={(e) => { vibrate(); e.stopPropagation(); onShopeeClick(gift); }}
+                               className="w-full bg-[#B07D62] text-white py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#B07D62]/20 active:scale-95 hover:bg-[#966b54] transition-all flex items-center justify-center gap-2"
+                             >
+                               <IconGift className="w-4 h-4" />
+                               Enviar presente tardio
+                             </button>
+                           )}
+
+                           <button 
+                             onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
+                             className={`w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                               hasLink 
+                                 ? 'bg-transparent text-[#354F52] border-[#354F52]/20 hover:bg-[#354F52]/5'
+                                 : 'bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg'
+                             }`}
+                           >
+                             <IconCheck className="w-4 h-4" />
+                             {hasLink ? 'Já comprei / Entreguei' : 'Marcar como entregue'}
+                           </button>
+                        </>
+                      ) : isFinalStretch ? (
+                        <>
+                           {/* Lógica Reta Final */}
                            <button 
                              onClick={(e) => { vibrate(); e.stopPropagation(); onReserve(gift); }}
                              className="w-full py-3 md:py-2.5 px-4 rounded-xl text-[11px] md:text-[10px] font-black uppercase tracking-widest bg-[#354F52] text-white border-transparent hover:bg-[#2A3F41] shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                             title="O evento está próximo, leve em mãos!"
                            >
                              <IconGift className="w-4 h-4" />
                              Vou levar na festa!
                            </button>
 
-                           {/* Botão Secundário (Link) com Aviso */}
                            {hasLink && (
                              <div className="relative group/tooltip">
                                <button 
@@ -444,7 +470,7 @@ const GiftList: React.FC<GiftListProps> = ({ gifts, currentUser, onReserve, onSh
                         </>
                       )}
 
-                      {/* Botão de "Apenas Ver" (Comum aos dois modos) */}
+                      {/* Botão de "Apenas Ver" (Comum aos modos, exceto quando já reservado) */}
                       {hasLink && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); if (gift.shopeeUrl) window.open(gift.shopeeUrl, '_blank'); }}
