@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Gift, User } from '../types';
 import { IconHeart, IconSparkles, IconCheck, IconUser } from './Icons';
@@ -5,9 +6,10 @@ import { IconHeart, IconSparkles, IconCheck, IconUser } from './Icons';
 interface PresenceListProps {
   gifts: Gift[];
   currentUser?: User | null;
+  isPast?: boolean; // Novo prop para controle de texto
 }
 
-const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
+const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser, isPast = false }) => {
   // Extrai nomes únicos de quem reservou
   const giverNames: string[] = Array.from(new Set(
     gifts
@@ -40,14 +42,14 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
             Mural de Carinho
           </h3>
           <p className="text-[10px] text-[#84A98C] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] mt-2 md:mt-3">
-            Quem já está participando com a gente
+            {isPast ? "Quem participou desse momento com a gente" : "Quem já está participando com a gente"}
           </p>
         </div>
         
         <div className="flex gap-3 md:gap-4 w-full md:w-auto justify-center">
           <div className="flex flex-col items-center bg-[#B07D62]/5 px-4 md:px-6 py-3 md:py-4 rounded-2xl border border-[#B07D62]/10 flex-1 md:flex-none min-w-[100px]">
             <span className="text-2xl md:text-3xl font-bold text-[#B07D62]">{confirmedCount}</span>
-            <span className="text-[8px] md:text-[9px] font-black text-[#B07D62]/60 uppercase tracking-widest text-center">Presentes<br/>Escolhidos</span>
+            <span className="text-[8px] md:text-[9px] font-black text-[#B07D62]/60 uppercase tracking-widest text-center">Presentes<br/>Ganhos</span>
           </div>
           <div className="flex flex-col items-center bg-[#52796F]/5 px-4 md:px-6 py-3 md:py-4 rounded-2xl border border-[#52796F]/10 flex-1 md:flex-none min-w-[100px]">
              <div className="flex items-center gap-1">
@@ -89,7 +91,7 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
         })}
 
         {/* --- GAMIFICAÇÃO SUTIL (Versão Elegante/Ghost) --- */}
-        {!amIInList && (
+        {!amIInList && !isPast && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-1000 delay-300">
              <div className="
                group relative flex items-center gap-3 pl-1 pr-5 py-1.5 
@@ -113,7 +115,7 @@ const PresenceList: React.FC<PresenceListProps> = ({ gifts, currentUser }) => {
            <IconSparkles className="w-4 h-4 text-amber-400" />
            <p className="text-[10px] text-amber-700 font-bold uppercase tracking-widest">
              {amIInList 
-               ? "Obrigado por fazer parte desse sonho com a gente! ❤️" 
+               ? "Obrigado por ter feito parte desse sonho! ❤️" 
                : "Sua presença na nossa história é o maior presente."}
            </p>
         </div>

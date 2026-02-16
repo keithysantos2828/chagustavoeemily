@@ -19,20 +19,31 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     const target = new Date(targetDate);
     const diff = target.getTime() - now.getTime();
     
-    // Cálculo de dias de calendário (Meia-noite a Meia-noite)
+    // Cálculo de dias de calendário (Meia-noite a Meia-noite) para precisão absoluta de "Dia"
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
     const msPerDay = 1000 * 60 * 60 * 24;
-    const calendarDaysDiff = Math.ceil((targetMidnight.getTime() - todayMidnight.getTime()) / msPerDay);
+    
+    // Diferença em dias inteiros
+    const calendarDaysDiff = Math.round((targetMidnight.getTime() - todayMidnight.getTime()) / msPerDay);
 
-    if (diff <= 0) {
-      const timeSince = Math.abs(diff);
-      if (timeSince < msPerDay) {
-        return { mode: 'TODAY' as TimeMode, time: { dias: 0, horas: 0, minutos: 0, segundos: 0 }, calendarDaysDiff: 0 };
-      } else {
-        const d = Math.floor(timeSince / msPerDay);
-        return { mode: 'PAST' as TimeMode, time: { dias: d, horas: 0, minutos: 0, segundos: 0 }, calendarDaysDiff: -d };
-      }
+    // Se a data do calendário é anterior a hoje, é PASSADO.
+    if (calendarDaysDiff < 0) {
+      const d = Math.abs(calendarDaysDiff);
+      return { 
+        mode: 'PAST' as TimeMode, 
+        time: { dias: d, horas: 0, minutos: 0, segundos: 0 }, 
+        calendarDaysDiff 
+      };
+    }
+
+    // Se é o mesmo dia de calendário, é HOJE.
+    if (calendarDaysDiff === 0) {
+       return { 
+         mode: 'TODAY' as TimeMode, 
+         time: { dias: 0, horas: 0, minutos: 0, segundos: 0 }, 
+         calendarDaysDiff 
+       };
     }
 
     // Futuro
@@ -64,16 +75,13 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
 
   const updateMessages = (currentMode: TimeMode, calendarDaysDiff: number) => {
     if (currentMode === 'FUTURE') {
-      // Lógica Baseada em Calendário
       if (calendarDaysDiff > 1) {
         setHeroMessage("Faltam apenas...");
         setSubMessage("Para o nosso Chá de Casa Nova");
       } else if (calendarDaysDiff === 1) {
-        // "Amanhã" - Elegante e limpo
         setHeroMessage("Amanhã é o grande dia! ✨");
         setSubMessage("Prepare o coração, estamos quase lá");
       } else {
-        // Mesmo dia, mas ainda não chegou a hora (Ex: Manhã do evento)
         setHeroMessage("É hoje! Contando as horas...");
         setSubMessage("Estamos preparando tudo com carinho");
       }
@@ -86,16 +94,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
     }
   };
   
-  const addToCalendar = () => {
-    const text = encodeURIComponent("Chá de Casa Nova - Emily & Gustavo");
-    const dates = "20260215T150000/20260215T190000";
-    const details = encodeURIComponent("Venha celebrar com a gente! Rua Ângela Perin D'agostin - Embu, Colombo - PR");
-    const location = encodeURIComponent("Sede Campestre Sintracon");
-    
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}&location=${location}`;
-    window.open(url, '_blank');
-  };
-
   const renderCounterItem = (value: number, label: string, isUrgent: boolean = false, padZero: boolean = true) => (
     <div className="flex flex-col items-center flex-1 min-w-[70px] max-w-[110px] md:max-w-[130px] animate-in zoom-in-50 duration-500">
       <div className={`
@@ -129,7 +127,6 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
 
   if (!timeLeft) return null;
 
-  // Lógica de Urgência Visual: Se faltar menos de 1 dia no tempo absoluto
   const isUrgentMode = timeLeft.dias === 0 && mode === 'FUTURE';
 
   return (

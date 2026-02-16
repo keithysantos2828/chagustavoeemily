@@ -5,9 +5,10 @@ import { AlertType } from './CustomAlert';
 
 interface FooterProps {
   onShowAlert?: (type: AlertType, title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
+  isPast?: boolean; // Novo prop para controle de tempo verbal
 }
 
-const Footer: React.FC<FooterProps> = () => {
+const Footer: React.FC<FooterProps> = ({ isPast = false }) => {
   const [showMap, setShowMap] = useState(false);
 
   // Link para abrir o Google Maps externo com destino
@@ -38,7 +39,9 @@ const Footer: React.FC<FooterProps> = () => {
           <div className="absolute -top-10 -left-6 md:-top-16 md:-left-16 text-[#B07D62]/5 pointer-events-none">
             <IconSparkles className="w-24 h-24 md:w-40 md:h-40" />
           </div>
-          <h2 className="text-3xl md:text-6xl font-cursive text-[#354F52] mb-8 md:mb-12">Onde vamos celebrar</h2>
+          <h2 className="text-3xl md:text-6xl font-cursive text-[#354F52] mb-8 md:mb-12">
+            {isPast ? "Onde celebramos" : "Onde vamos celebrar"}
+          </h2>
           
           <div className="space-y-6 md:space-y-10 text-[#52796F]">
             {/* Bloco Local */}
@@ -51,7 +54,7 @@ const Footer: React.FC<FooterProps> = () => {
                 <p className="text-sm md:text-xl font-medium text-[#354F52]/80 leading-relaxed">
                   Sede Campestre Sintracon<br />
                   <span className="text-sm opacity-80">Rua Ângela Perin D'agostin - Embu, Colombo - PR</span><br />
-                  <span className="text-xs text-[#B07D62] font-bold mt-1 inline-block">Espaço de Eventos (Não é a casa nova)</span>
+                  <span className="text-xs text-[#B07D62] font-bold mt-1 inline-block">Espaço de Eventos</span>
                 </p>
               </div>
             </div>
@@ -62,10 +65,10 @@ const Footer: React.FC<FooterProps> = () => {
                 <IconCalendar className="w-5 h-5 md:w-7 md:h-7" />
               </div>
               <div>
-                <strong className="text-[#354F52] font-black uppercase text-[7px] md:text-[10px] tracking-widest block mb-1">Data & Hora</strong>
+                <strong className="text-[#354F52] font-black uppercase text-[7px] md:text-[10px] tracking-widest block mb-1">Data</strong>
                 <p className="text-sm md:text-xl font-medium text-[#354F52]/80">
-                  15 de Fevereiro de 2026<br />
-                  <span className="text-[#B07D62] font-bold">Chá de Casa Nova: Às 15:00h</span>
+                  {isPast ? "Realizado em:" : "Data Marcada:"}<br />
+                  <span className="text-[#B07D62] font-bold">15 de Fevereiro de 2026</span>
                 </p>
               </div>
             </div>

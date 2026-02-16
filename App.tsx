@@ -409,7 +409,7 @@ const App: React.FC = () => {
               {!isEventDay && !isPast && <DeliveryGuide targetDate={EVENT_DATE} />}
             </div>
 
-            <PresenceList gifts={gifts} currentUser={user} />
+            <PresenceList gifts={gifts} currentUser={user} isPast={isPast} />
 
             <main className="mt-8 md:mt-16">
               <div className="bg-[#FDFCF8] rounded-t-[2.5rem] pt-10 px-6 md:px-10 pb-6 border border-[#52796F]/5 border-b-0 shadow-sm relative z-10">
@@ -474,7 +474,7 @@ const App: React.FC = () => {
               </div>
             </main>
 
-            <Footer onShowAlert={showAlert} />
+            <Footer onShowAlert={showAlert} isPast={isPast} />
           </div>
         </div>
       )}
