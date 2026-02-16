@@ -127,9 +127,9 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
   // =========================================================
   if (mode === 'PAST') {
     return (
-      <div className="flex flex-col items-center justify-center py-6 md:py-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <div className="flex flex-col items-center justify-center pt-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
          
-         <div className="relative bg-[#FDFCF8] p-8 md:p-12 rounded-[2rem] shadow-xl border border-[#B07D62]/20 max-w-lg text-center mx-4">
+         <div className="relative bg-[#FDFCF8] p-8 md:p-12 pb-6 rounded-t-[2rem] rounded-b-none shadow-xl border-x border-t border-[#B07D62]/20 max-w-lg w-full text-center mx-4">
             
             {/* Elemento Decorativo de Fundo */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#B07D62]/5 rounded-full blur-3xl -z-10"></div>
@@ -144,7 +144,7 @@ const Countdown: React.FC<CountdownProps> = ({ targetDate }) => {
                Foi inesquecível!
             </h2>
             
-            <p className="text-[#52796F] text-lg leading-relaxed mb-8 font-serif italic">
+            <p className="text-[#52796F] text-lg leading-relaxed mb-6 font-serif italic">
                "Guardaremos cada sorriso, cada abraço e cada gesto de carinho em nossos corações para sempre."
             </p>
 

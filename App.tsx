@@ -400,13 +400,14 @@ const App: React.FC = () => {
                <Header user={user} isPast={isPast} />
             </div>
             
-            <div className="my-10 md:my-16 space-y-8">
+            {/* LÓGICA DE LAYOUT CONDICIONAL - UNINDO OS CARDS SE FOR PASSADO */}
+            <div className={`my-10 md:my-16 ${isPast ? 'space-y-0' : 'space-y-8'}`}>
               {!isEventDay && <div className="">
                  <Countdown targetDate={EVENT_DATE} />
               </div>}
 
-              {/* Guia de entrega: Agora mostra versão 'Tardia' se isPast */}
-              {!isEventDay && <DeliveryGuide targetDate={EVENT_DATE} />}
+              {/* Guia de entrega: Agora recebe isPast para evitar Flicker e se acoplar */}
+              {!isEventDay && <DeliveryGuide targetDate={EVENT_DATE} isPast={isPast} />}
             </div>
 
             <PresenceList gifts={gifts} currentUser={user} isPast={isPast} />
